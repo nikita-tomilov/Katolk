@@ -23,14 +23,16 @@ class UserVault(val repository: UserRepository,
     val context = SecurityContextHolder.getContext()
     val username = context.authentication.principal as String
     val user = repository.findByUsername(username)!!
-    user.password = ""
-    return user
+    val userCopy = user.copy()
+    userCopy.password = ""
+    return userCopy
   }
 
   fun getUser(id: Int): User {
     val user = repository.findById(id).get()
-    user.password = ""
-    return user
+    val userCopy = user.copy()
+    userCopy.password = ""
+    return userCopy
   }
 
   @PostConstruct

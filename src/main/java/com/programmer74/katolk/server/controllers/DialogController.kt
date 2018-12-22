@@ -56,7 +56,7 @@ class DialogController {
 
   @PostMapping("/messages/send")
   fun sendMessage(
-      @PathVariable msg: Message
+      @RequestBody msg: Message
   ): Message {
     val me = users.getCurrentUser()
     val dialogueId = msg.dialogueID
