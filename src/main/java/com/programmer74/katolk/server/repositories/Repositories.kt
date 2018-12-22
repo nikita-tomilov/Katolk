@@ -16,7 +16,7 @@ interface MessageRepository : CrudRepository<Message, Int> {
 }
 
 interface DialogueRepository : CrudRepository<Dialogue, Int> {
-  fun findAllById(id: List<Int>): List<Dialogue>?
+  fun findByIdIn(id: List<Int>): List<Dialogue>?
 }
 
 interface DialogueParticipantRepository : CrudRepository<DialogueParticipant, Int> {
