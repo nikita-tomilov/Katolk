@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="300.0" prefWidth="300.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.programmer74.katolk.client.gui.LoginController">
+    <children>
+      <TextField id="txtUrl" fx:id="txtUrl" layoutX="65.0" layoutY="78.0" text="http://localhost:8080" />
+        <TextField fx:id="txtUsername" layoutX="65.0" layoutY="138.0" text="user1" />
+        <PasswordField fx:id="txtPassword" layoutX="65.0" layoutY="193.0" text="user1" />
+        <Button fx:id="cmdGo" layoutX="173.0" layoutY="230.0" mnemonicParsing="false" onAction="#cmdGoClick" prefHeight="25.0" prefWidth="62.0" text="Go" />
+        <Label layoutX="64.0" layoutY="170.0" text="Password" />
+        <Label layoutX="67.0" layoutY="116.0" text="Username" />
+      <Label layoutX="64.0" layoutY="56.0" text="Url" />
+    </children>
+</Pane>
