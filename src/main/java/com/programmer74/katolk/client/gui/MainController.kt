@@ -76,7 +76,11 @@ class MainController {
             text = null
             graphic = null
           } else {
-            text = dialogue.toString()
+            if (dialogue.participants.size == 2) {
+              text = dialogue.participants.first { it != me.username }
+            } else {
+              text = "You and ${dialogue.participants.size - 1} more"
+            }
             graphic = imageView
             onMouseClicked = EventHandler { lvDialogsDialogClicked() }
           }
