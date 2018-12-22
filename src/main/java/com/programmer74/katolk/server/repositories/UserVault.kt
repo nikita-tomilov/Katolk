@@ -27,6 +27,12 @@ class UserVault(val repository: UserRepository,
     return user
   }
 
+  fun getUser(id: Int): User {
+    val user = repository.findById(id).get()
+    user.password = ""
+    return user
+  }
+
   @PostConstruct
   fun initUsers() {
     saveUser(User(0, "admin", "admin"))

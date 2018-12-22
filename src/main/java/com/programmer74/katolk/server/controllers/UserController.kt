@@ -16,4 +16,11 @@ class UserController {
   fun me(): User {
    return users.getCurrentUser()
   }
+
+  @GetMapping("/user/{id}")
+  fun me(
+      @PathVariable("id") id: Int
+  ): User {
+    return users.getUser(id)
+  }
 }

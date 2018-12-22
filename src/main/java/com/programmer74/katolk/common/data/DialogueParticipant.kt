@@ -6,12 +6,10 @@ import javax.persistence.GenerationType
 import javax.persistence.Id
 
 @Entity
-data class Message(
+data class DialogueParticipant(
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
   val id: Int = 0,
-  val author: Int = 0,
   val dialogueID: Int = 0,
-  val body: String = "",
-  var date: Long = 0
+  val userID: Int = 0
 )

@@ -1,6 +1,5 @@
 package com.programmer74.katolk.server.auth
 
-import com.programmer74.katolk.server.repositories.UserRepository
 import com.programmer74.katolk.server.repositories.UserVault
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.authentication.AuthenticationProvider
