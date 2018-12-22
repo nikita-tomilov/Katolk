@@ -1,6 +1,6 @@
 package com.programmer74.katolk.server.controllers
 
-import com.programmer74.katolk.server.data.Message
+import com.programmer74.katolk.common.data.Message
 import com.programmer74.katolk.server.repositories.MessageRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.*
