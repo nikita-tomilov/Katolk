@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.effect.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.web.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane fx:id="paneMain" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="480.0" minWidth="640.0" prefHeight="480.0" prefWidth="640.0" style="-fx-background-color: #1aff1a;" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.programmer74.katolk.client.gui.MainController">
+   <center>
+      <BorderPane fx:id="paneCenter" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+         <center>
+            <WebView fx:id="wvMessageHistory" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+               <BorderPane.margin>
+                  <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+               </BorderPane.margin></WebView>
+         </center>
+         <bottom>
+            <BorderPane prefHeight="80.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+               <center>
+                  <TextArea fx:id="txtMessage" prefHeight="75.0" prefWidth="120.0" promptText="Type message here..." wrapText="true" BorderPane.alignment="CENTER">
+                     <BorderPane.margin>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </BorderPane.margin></TextArea>
+               </center>
+               <right>
+                  <Pane prefHeight="80.0" prefWidth="80.0" BorderPane.alignment="CENTER">
+                     <children>
+                        <Button fx:id="cmdSend" layoutX="9.0" layoutY="2.0" mnemonicParsing="false" onAction="#cmdSendClick" text="Send" />
+                     </children>
+                  </Pane>
+               </right>
+            </BorderPane>
+         </bottom>
+         <top>
+            <Pane prefHeight="120.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+               <children>
+                  <TextFlow fx:id="tfUser" layoutX="5.0" layoutY="5.0" prefHeight="110.0" prefWidth="190.0" style="-fx-background-color: #66ff66;">
+                     <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </padding></TextFlow>
+               </children>
+            </Pane>
+         </top>
+      </BorderPane>
+   </center>
+   <left>
+      <BorderPane prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+         <center>
+            <ListView fx:id="lvDialogs" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+               <BorderPane.margin>
+                  <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+               </BorderPane.margin>
+               <padding>
+                  <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+               </padding></ListView>
+         </center>
+         <top>
+            <Pane prefHeight="120.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+               <children>
+                  <TextFlow fx:id="tfMe" layoutX="5.0" layoutY="5.0" prefHeight="110.0" prefWidth="190.0" style="-fx-background-color: #66ff66;">
+                     <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </padding></TextFlow>
+               </children>
+            </Pane>
+         </top>
+      </BorderPane>
+   </left>
+   <top>
+      <MenuBar BorderPane.alignment="CENTER">
+        <menus>
+          <Menu mnemonicParsing="false" text="General">
+            <items>
+              <MenuItem mnemonicParsing="false" text="Not implemented" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Contact">
+            <items>
+                <MenuItem mnemonicParsing="false" text="Not implemented" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Help">
+            <items>
+              <MenuItem mnemonicParsing="false" text="Not implemented" />
+            </items>
+          </Menu>
+        </menus>
+      </MenuBar>
+   </top>
+</BorderPane>
