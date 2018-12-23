@@ -26,4 +26,6 @@ class FeignRepository(val url: String, val username: String, val password: Strin
         it.header("Content-Type", "application/json")
       }
       .target(DialogueClient::class.java, "$url/api/dialog")
+
+  fun getWsClient() = WsClient(username, password, "$url/api/ws/websocket")
 }
