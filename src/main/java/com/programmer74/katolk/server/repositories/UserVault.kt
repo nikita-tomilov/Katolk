@@ -4,11 +4,14 @@ import com.programmer74.katolk.common.data.User
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import org.springframework.web.socket.WebSocketSession
 import javax.annotation.PostConstruct
 
 @Service
 class UserVault(val repository: UserRepository,
                 val passwordEncoder: PasswordEncoder) {
+
+  private val onlineUsers = HashMap<WebSocketSession, User>()
 
   fun saveUser(user: User) {
     user.password = passwordEncoder.encode(user.password)
@@ -33,6 +36,20 @@ class UserVault(val repository: UserRepository,
     val userCopy = user.copy()
     userCopy.password = ""
     return userCopy
+  }
+
+  fun addOnlineUser(user: User, session: WebSocketSession) {
+    System.err.println("User ${user.username} online")
+    onlineUsers[session] = user
+  }
+
+  fun dropOnlineUser(session: WebSocketSession) {
+    onlineUsers.remove(session)
+    System.err.println("Removed ${session}")
+  }
+
+  fun getOnlineUsers(): Map<WebSocketSession, User> {
+    return onlineUsers.toMutableMap()
   }
 
   @PostConstruct

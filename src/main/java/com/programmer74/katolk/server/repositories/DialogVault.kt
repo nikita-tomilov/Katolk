@@ -31,6 +31,11 @@ class DialogVault(val dialogs: DialogueRepository,
     return dialogs.findByIdIn(participatesIn)!!
   }
 
+  fun getParticipants(dialogue: Dialogue) : List<User> {
+    val participants = participants.findAllByDialogueID(dialogue.id)!!
+    return users.repository.findAllById(participants.map { it.userID }.toList()).toList()
+  }
+
   fun getDialogRepresentations(user: User): List<DialogueJson> {
     val belongsToDialogsIDs = participants.findAllByUserID(user.id)!!.map { it.dialogueID }
     val belongsToDialogs = dialogs.findByIdIn(belongsToDialogsIDs)

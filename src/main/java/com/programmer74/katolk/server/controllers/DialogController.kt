@@ -26,6 +26,9 @@ class DialogController {
   @Autowired
   lateinit var dialogs: DialogVault
 
+  @Autowired
+  lateinit var websocketHandler: WebsocketHandler
+
   @ResponseStatus(HttpStatus.FORBIDDEN)
   inner class ForbiddenException : RuntimeException()
 
@@ -65,6 +68,13 @@ class DialogController {
       throw ForbiddenException()
     }
     val dialogue = dialogs.dialogs.findById(dialogueId).get()
-    return messages.sendMessage(me, dialogue, msg.body)
+    val message =  messages.sendMessage(me, dialogue, msg.body)
+
+    val userIds = participants.map { it.userID }
+    val users = users.repository.findAllById(userIds).toList()
+
+    users.forEach { websocketHandler.notifyUserAboutNewMessage(it) }
+
+    return message
   }
 }
