@@ -11,7 +11,7 @@ public class ClientAplication extends Application {
   public static void main(String[] args) {
     launch(args);
   }
-
+  //http://paletton.com/#uid=52+0u0kllllaFw0g0qFqFg0w0aF
   @Override
   public void start(Stage stage) throws Exception {
     String fxmlFile = "/fxml/login.fxml";

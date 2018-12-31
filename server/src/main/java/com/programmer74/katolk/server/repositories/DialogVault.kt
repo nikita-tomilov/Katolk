@@ -73,7 +73,13 @@ class DialogVault(val dialogs: DialogueRepository,
     addParticipant(conference, user1)
     addParticipant(conference, user2)
 
+    val talkToUrself = createDialogue(user1, "Private chat")
+
     messages.sendMessage(admin, conference, "Broadcast to users1&2")
     messages.sendMessage(user1, conference, "Reply from user1")
+    val msg =
+        messages.sendMessage(user1, talkToUrself, "This is your private dialogue with yourself")
+    msg.wasRead = true
+    messages.messages.save(msg)
   }
 }

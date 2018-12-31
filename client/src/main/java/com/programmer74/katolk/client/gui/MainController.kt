@@ -1,5 +1,8 @@
 package com.programmer74.katolk.client.gui
 
+import com.programmer74.katolk.client.audio.Audio
+import com.programmer74.katolk.client.binary.BinaryMessage
+import com.programmer74.katolk.client.binary.BinaryMessageType
 import com.programmer74.katolk.client.data.DialogueJson
 import com.programmer74.katolk.client.data.Message
 import com.programmer74.katolk.client.data.MessageJson
@@ -14,14 +17,9 @@ import javafx.embed.swing.SwingFXUtils
 import javafx.event.ActionEvent
 import javafx.event.EventHandler
 import javafx.fxml.FXML
-import javafx.scene.control.Button
-import javafx.scene.control.ListCell
-import javafx.scene.control.ListView
-import javafx.scene.control.TextArea
+import javafx.scene.control.*
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
-import javafx.scene.layout.Background
-import javafx.scene.layout.BackgroundFill
 import javafx.scene.layout.BorderPane
 import javafx.scene.text.Font
 import javafx.scene.text.Text
@@ -45,14 +43,25 @@ class MainController {
   @FXML lateinit var paneMain: BorderPane
   @FXML lateinit var tfUser: TextFlow
   @FXML lateinit var tfMe: TextFlow
+  @FXML lateinit var tfCall: TextFlow
+  @FXML lateinit var mnuBeginCall: MenuItem
+  @FXML lateinit var mnuEndCall: MenuItem
+
+  @FXML lateinit var lblTalkingTo: Label
+  @FXML lateinit var lblTalkingTime: Label
 
   lateinit var feignRepository: FeignRepository
   lateinit var userClient: UserClient
   lateinit var dialogueClient: DialogueClient
   lateinit var wsClient: WsClient
+  lateinit var audio: Audio
 
   lateinit var me: UserJson
+  var messagesOpponent: UserJson? = null
+  var callOpponent: UserJson? = null
   var selectedDialogue: DialogueJson? = null
+  var callInProgress = false
+  var callThread: Thread? = null
 
   lateinit var onlineImage: javafx.scene.image.Image
   lateinit var offlineImage: javafx.scene.image.Image
@@ -64,17 +73,17 @@ class MainController {
     wsClient = feignRepository.getWsClient()
     wsClient.open()
     wsClient.add(Consumer { t ->
-      if (t == "UPDATE") {
-        Platform.runLater {
-          uiUpdateDialogueList()
-          uiUpdateMessagesView()
-        }
-      }
+      WsStringMsgHandler(t)
     })
+    wsClient.addBinary(Consumer { t ->
+      WsBinaryMsgHandler(t)
+    })
+    audio = Audio(5, wsClient)
     me = userClient.me()
     uiSetupDialogListImages()
     uiUpdateUserInfo(tfMe, me)
     uiUpdateDialogueList()
+    uiUpdateCallMenus()
     txtMessage.setOnKeyPressed {
       if ((it.code == KeyCode.ENTER) && !(it.isShiftDown) && !(it.isControlDown)) {
         cmdSendClick(ActionEvent())
@@ -183,6 +192,24 @@ class MainController {
     lvDialogs.items = dialogsAtLw
   }
 
+  fun uiUpdateCallMenus() {
+    if (callInProgress) {
+      mnuBeginCall.isDisable = true
+      mnuEndCall.isDisable = false
+      return
+    } else {
+      mnuEndCall.isDisable = true
+    }
+    val selectedDialogue = this.selectedDialogue
+    val opponent = this.messagesOpponent
+    if (selectedDialogue == null || opponent == null) {
+      mnuBeginCall.isDisable = true
+      return
+    }
+
+    mnuBeginCall.isDisable = !opponent.online
+  }
+
   private fun extractMessagePreview(latestMessage: MessageJson): String {
     var latestMessagePreview = latestMessage.body.trim()
     val maxlen = 10
@@ -206,32 +233,36 @@ class MainController {
   private fun lvDialogsDialogClicked() {
     selectedDialogue = lvDialogs.selectionModel.selectedItem
     uiUpdateMessagesView()
+    uiUpdateCallMenus()
   }
 
   private fun uiUpdateMessagesView() {
-    val dialogueCopy = selectedDialogue
+    val dialogue = selectedDialogue
 
-    if (dialogueCopy == null) {
+    if (dialogue == null) {
       wvMessageHistory.engine.loadContent("<html></html>")
+      messagesOpponent = null
       return
     }
 
-    val messages = dialogueClient.getMessages(dialogueCopy.id)
+    messagesOpponent = dialogue.getOpponent(me)
+
+    val messages = dialogueClient.getMessages(dialogue.id)
 
     val html = buildHTML(messages, me)
 
     Platform.runLater {
-      if (dialogueCopy.participants.size == 2) {
-        uiUpdateUserInfo(tfUser, dialogueCopy.participants.first { it.id != me.id })
+      if (dialogue.participants.size == 2) {
+        uiUpdateUserInfo(tfUser, messagesOpponent!!)
       } else {
-        uiUpdateUserInfo(tfUser, dialogueCopy)
+        uiUpdateUserInfo(tfUser, dialogue)
       }
       wvMessageHistory.engine.loadContent(html)
     }
 
     if (messages.firstOrNull { (it.wasRead == false) && (it.author != me.username) } != null) {
 //      Platform.runLater {
-        dialogueClient.markReadMessages(dialogueCopy.id)
+        dialogueClient.markReadMessages(dialogue.id)
 //      }
     }
   }
@@ -254,12 +285,111 @@ class MainController {
   }
 
   @FXML fun cmdSendClick(event: ActionEvent) {
-    val dialogueCopy = selectedDialogue ?: return
-
-    val msg = Message(0, 0, dialogueCopy.id, txtMessage.text, 0)
+    val dialogue = selectedDialogue ?: return
+    val msg = Message(0, 0, dialogue.id, txtMessage.text, 0)
     dialogueClient.sendMessage(msg)
     uiUpdateDialogueList()
     uiUpdateMessagesView()
     txtMessage.text = ""
+  }
+
+  @FXML
+  fun mnuBeginCallClick(event: ActionEvent) {
+    val opponent = this.messagesOpponent ?: return
+    val callMessage = BinaryMessage(BinaryMessageType.CALL_REQUEST, opponent.id)
+    wsClient.client.send(callMessage.toBytes())
+  }
+
+  @FXML
+  fun mnuEndCallClick(event: ActionEvent) {
+    val opponent = this.callOpponent ?: return
+    val callMessage = BinaryMessage(BinaryMessageType.CALL_END, opponent.id)
+    wsClient.client.send(callMessage.toBytes())
+  }
+
+  fun WsStringMsgHandler(msg: String) {
+    if (msg == "UPDATE") {
+      Platform.runLater {
+        uiUpdateDialogueList()
+        uiUpdateMessagesView()
+        uiUpdateCallMenus()
+      }
+    } else if (msg == "AUTH_OK") {
+      Platform.runLater {
+        me = userClient.me()
+        uiUpdateUserInfo(tfMe, me)
+      }
+    }
+  }
+
+  fun WsBinaryMsgHandler(msg: BinaryMessage) {
+    when {
+      msg.type == BinaryMessageType.CALL_REQUEST -> {
+        val asker = userClient.getUser(msg.intPayload())
+        val prompt = "Incoming call from ${asker.username}. Accept?"
+        val agree = MessageBoxes.showYesNoAlert(prompt)
+        val answer =
+        if (agree) {
+          BinaryMessage(BinaryMessageType.CALL_RESPONSE_ALLOW, asker.id)
+        } else {
+          BinaryMessage(BinaryMessageType.CALL_RESPONSE_DENY, asker.id)
+        }
+        wsClient.send(answer)
+      }
+      msg.type == BinaryMessageType.CALL_BEGIN -> {
+        handleCallBegin(userClient.getUser(msg.intPayload()))
+      }
+      msg.type == BinaryMessageType.CALL_END -> {
+        handleCallEnd("Call ended")
+      }
+      msg.type == BinaryMessageType.CALL_ERROR -> {
+        MessageBoxes.showAlert("Error calling", "Error")
+      }
+      msg.type == BinaryMessageType.CALL_END_ABNORMAL -> {
+        handleCallEnd("Abnormal call ending. Probably opponent disconnected")
+      }
+    }
+  }
+
+  fun handleCallBegin(user: UserJson) {
+    callInProgress = true
+    uiUpdateCallMenus()
+    System.err.println("BEGIN CALL")
+    tfCall.isVisible = true
+    callOpponent = user
+    callThread = Thread(Runnable {
+      var time = 0
+      while (callInProgress) {
+        val mins = time / 60
+        val secs = time % 60
+        Platform.runLater {
+          lblTalkingTo.text = "Call with ${user.username}"
+          lblTalkingTime.text = "$mins:$secs"
+        }
+        Thread.sleep(1000)
+        time++
+      }
+    })
+    callThread!!.start()
+    audio.Talk()
+    audio.Listen()
+    wsClient.isOpponentAvailable = true
+  }
+
+  fun handleCallEnd(msg: String) {
+    if (!callInProgress) {
+      return
+    }
+    audio.StopListening()
+    audio.StopTalking()
+    wsClient.isOpponentAvailable = false
+    callInProgress = false
+    callOpponent = null
+    uiUpdateCallMenus()
+    MessageBoxes.showAlert(msg, "Info")
+    System.err.println("END CALL")
+    callThread!!.join()
+    callThread = null
+    tfCall.isVisible = false
   }
 }

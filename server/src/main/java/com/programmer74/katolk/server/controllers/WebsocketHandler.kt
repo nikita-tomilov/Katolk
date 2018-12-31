@@ -6,10 +6,7 @@ import com.programmer74.katolk.server.entity.UserEntity
 import com.programmer74.katolk.server.repositories.DialogVault
 import com.programmer74.katolk.server.repositories.UserVault
 import org.springframework.stereotype.Component
-import org.springframework.web.socket.BinaryMessage
-import org.springframework.web.socket.CloseStatus
-import org.springframework.web.socket.TextMessage
-import org.springframework.web.socket.WebSocketSession
+import org.springframework.web.socket.*
 import org.springframework.web.socket.handler.BinaryWebSocketHandler
 import java.io.IOException
 import java.time.Instant
@@ -35,6 +32,7 @@ class WebsocketHandler(val userVault: UserVault,
       if (userVault.checkPasswordMatches(user, password)) {
         userVault.addOnlineUser(user, session)
         notifyAboutUserStateChange(user)
+        session.sendMessage(TextMessage("AUTH_OK"))
       }
     }
   }
@@ -66,24 +64,22 @@ class WebsocketHandler(val userVault: UserVault,
     sessions.remove(session)
     val user = userVault.getOnlineUser(session)!!
     userVault.dropOnlineUser(session)
-    user.lastOnline = Instant.now().toEpochMilli()
-    userVault.repository.save(user)
+
+    if (userVault.getOnlineSession(user) == null) {
+      user.lastOnline = Instant.now().toEpochMilli()
+      user.online = false
+      userVault.repository.save(user)
+    }
+
     notifyAboutUserStateChange(user)
+    handleTalkEndAbnormally(session, user)
   }
 
   override fun handleBinaryMessage(session: WebSocketSession, message: BinaryMessage) {
     val payload = message.payload.array()
     val user = userVault.getOnlineUser(session)!!
-    val clientMessage = ClientBinaryMessage.fromBytes(payload, user)
-    val onlineUsers = userVault.getOnlineUsers().keys
-    if (clientMessage.type == ClientBinaryMessageType.PING_SERVER_REQUEST) {
-      val response = ClientBinaryMessage(ClientBinaryMessageType.PING_SERVER_RESPONSE, clientMessage.payload, user)
-      session.sendMessage(BinaryMessage(response.toBytes()))
-    } else {
-      onlineUsers.forEach {
-        it.sendMessage(BinaryMessage(clientMessage.toBytes()))
-      }
-    }
+    val clientRequest = ClientBinaryMessage.fromBytes(payload, user)
+    handleBinaryMessagingLogic(clientRequest, session, user)
   }
 
   @PostConstruct
@@ -105,8 +101,120 @@ class WebsocketHandler(val userVault: UserVault,
     userVault.getOnlineUsers()
         .filterValues { it.id == user.id }
         .forEach { s, u ->
-          s.sendMessage(TextMessage("UPDATE"))
+          s.secureSendMessage(TextMessage("UPDATE"))
           System.err.println("Notified ${u.username} about dialogue update")
         }
+  }
+
+  private fun handleBinaryMessagingLogic(
+      clientRequest: ClientBinaryMessage,
+      session: WebSocketSession,
+      sender: UserEntity) {
+    when {
+      clientRequest.type == ClientBinaryMessageType.PING_SERVER_REQUEST -> {
+        val clientResponse = ClientBinaryMessage(ClientBinaryMessageType.PING_SERVER_RESPONSE,
+            clientRequest.payload, sender)
+        session.secureSendMessage(clientResponse)
+      }
+      clientRequest.type == ClientBinaryMessageType.CALL_REQUEST -> {
+        handleCallRequest(clientRequest, session, sender)
+      }
+      clientRequest.type == ClientBinaryMessageType.CALL_RESPONSE_ALLOW ||
+          clientRequest.type == ClientBinaryMessageType.CALL_RESPONSE_DENY -> {
+        handleCallResponse(clientRequest, session, sender)
+      }
+      clientRequest.type == ClientBinaryMessageType.CALL_END -> {
+        handleTalkEndNormally(session, sender)
+      }
+      else -> handleForwarding(clientRequest, session)
+    }
+  }
+
+  private fun handleCallRequest(clientRequest: ClientBinaryMessage,
+                                session: WebSocketSession,
+                                sender: UserEntity) {
+    val requestedUser = userVault.getOnlineUser(clientRequest.intPayload())
+    if (requestedUser == null) {
+      val clientResponse = ClientBinaryMessage(ClientBinaryMessageType.CALL_ERROR,
+          clientRequest.payload, sender)
+      session.secureSendMessage(clientResponse)
+    } else {
+      val forwardedRequest = ClientBinaryMessage(ClientBinaryMessageType.CALL_REQUEST,
+          sender.id, sender)
+      val forwardTo = userVault.getOnlineSession(requestedUser)!!
+      forwardTo.secureSendMessage(forwardedRequest)
+    }
+  }
+
+  private fun handleCallResponse(clientRequest: ClientBinaryMessage,
+                                session: WebSocketSession,
+                                sender: UserEntity) {
+    val forwardingToUser = userVault.getOnlineUser(clientRequest.intPayload())
+    if (forwardingToUser == null) {
+      val clientResponse = ClientBinaryMessage(ClientBinaryMessageType.CALL_ERROR,
+          clientRequest.payload, sender)
+      session.secureSendMessage(clientResponse)
+    } else {
+      val forwardedRequest = ClientBinaryMessage(clientRequest.type,
+          sender.id, sender)
+      val forwardTo = userVault.getOnlineSession(forwardingToUser)!!
+      forwardTo.secureSendMessage(forwardedRequest)
+      if (clientRequest.type == ClientBinaryMessageType.CALL_RESPONSE_ALLOW) {
+        val first = session
+        val second = forwardTo
+        userVault.addTalk(first, second)
+        first.secureSendMessage(
+            ClientBinaryMessage(
+                ClientBinaryMessageType.CALL_BEGIN,
+                userVault.getOnlineUser(second)!!.id,
+                sender)
+        )
+        second.secureSendMessage(
+            ClientBinaryMessage(
+                ClientBinaryMessageType.CALL_BEGIN,
+                userVault.getOnlineUser(first)!!.id,
+                sender)
+        )
+      }
+    }
+  }
+
+  private fun handleTalkEndAbnormally(session: WebSocketSession, sender: UserEntity) {
+    val talk = userVault.getTalk(session) ?: return
+    val notifyTo =
+        if (talk.key == session) talk.value else talk.key
+    val msg =
+        ClientBinaryMessage(ClientBinaryMessageType.CALL_END_ABNORMAL, ByteArray(0), sender)
+    notifyTo.secureSendMessage(msg)
+    userVault.removeTalk(notifyTo)
+  }
+
+  private fun handleTalkEndNormally(session: WebSocketSession, sender: UserEntity) {
+    val talk = userVault.getTalk(session) ?: return
+    val notifyTo =
+    if (talk.key == session) talk.value else talk.key
+    val msg =
+        ClientBinaryMessage(ClientBinaryMessageType.CALL_END, ByteArray(0), sender)
+    session.secureSendMessage(msg)
+    notifyTo.secureSendMessage(msg)
+    userVault.removeTalk(notifyTo)
+  }
+
+  private fun handleForwarding(message: ClientBinaryMessage, session: WebSocketSession) {
+    val talk = userVault.getTalk(session) ?: return
+    val forwardTo =
+        if (talk.key == session) talk.value else talk.key
+
+    forwardTo.secureSendMessage(message)
+  }
+  
+  private fun WebSocketSession.secureSendMessage(msg: WebSocketMessage<*>) {
+    synchronized(this) {
+      sendMessage(msg)
+    }
+  }
+
+  private fun WebSocketSession.secureSendMessage(msg: ClientBinaryMessage) {
+    secureSendMessage(BinaryMessage(msg.toBytes()))
   }
 }

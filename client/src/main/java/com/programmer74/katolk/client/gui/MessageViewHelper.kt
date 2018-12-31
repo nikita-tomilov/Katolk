@@ -29,19 +29,19 @@ fun buildHTML(messages: List<MessageJson>, me: UserJson): String {
       "    padding: 10px; \n" +
       "}\n" +
       ".my {\n" +
-      "\tbackground-color: green;\n" +
+      "\tbackground-color: #4B966E;\n" +
       "    text-align: left;\n" +
       "    float:right;\n" +
       "    border-radius: 25px 25px 5px 25px;\n" +
       "}\n" +
       ".his {\n" +
-      "\tbackground-color: darkgreen;\n" +
+      "\tbackground-color: #477187;\n" +
       "    text-align: left;\n" +
       "    float:left;\n" +
       "    border-radius: 25px 25px 25px 5px;\n" +
       "}" +
       ".unread {\n" +
-      "\tcolor: black;\n" +
+      "\tbackground-color: #0F5A32;\n" +
       "}")
   historySb.append("</style>")
   historySb.append("</head>")

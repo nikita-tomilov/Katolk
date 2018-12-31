@@ -91,8 +91,14 @@ class DialogController {
     if (participants.none { it.userID == me.id }) {
       throw ForbiddenException()
     }
+
     val dialogue = dialogs.dialogs.findById(dialogueId).get()
     val message =  messages.sendMessage(me, dialogue, msg.body)
+
+    if (participants.size == 1) {
+      message.wasRead = true
+      messages.messages.save(message)
+    }
 
     val userIds = participants.map { it.userID }
     val users = users.repository.findAllById(userIds).toList()

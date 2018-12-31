@@ -13,6 +13,8 @@ class UserVault(val repository: UserRepository,
 
   private val onlineUsers = HashMap<WebSocketSession, UserEntity>()
 
+  private val talkingUserSessions = HashMap<WebSocketSession, WebSocketSession>()
+
   fun saveUser(user: UserEntity) {
     user.password = passwordEncoder.encode(user.password)
     repository.save(user)
@@ -54,14 +56,36 @@ class UserVault(val repository: UserRepository,
     setOnline(user)
   }
 
+  fun addTalk(from: WebSocketSession, to: WebSocketSession) {
+    talkingUserSessions[from] = to
+  }
+
+  fun removeTalk(one: WebSocketSession) {
+    if (talkingUserSessions.containsKey(one)) {
+      talkingUserSessions.remove(one)
+    } else {
+      val two
+          = talkingUserSessions.filter { it.value == one }.keys.first()
+      talkingUserSessions.remove(two)
+    }
+  }
+
+  fun getTalk(one: WebSocketSession) = talkingUserSessions
+      .filter { it.key == one || it.value == one }
+      .entries
+      .firstOrNull()
+
   fun getOnlineUser(session: WebSocketSession): UserEntity? {
     return onlineUsers[session]
   }
 
+  fun getOnlineUser(id: Int): UserEntity? = onlineUsers.values.firstOrNull { it.id == id }
+
+  fun getOnlineSession(user: UserEntity) = onlineUsers.filter { it.value.id == user.id }.keys.firstOrNull()
+
   fun dropOnlineUser(session: WebSocketSession) {
     val user = onlineUsers[session]!!
     onlineUsers.remove(session)
-    setOffline(user)
     System.err.println("Removed ${session}")
   }
 

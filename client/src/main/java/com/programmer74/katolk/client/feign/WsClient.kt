@@ -25,6 +25,8 @@ class WsClient (val username: String, val password: String, val url: String) {
 
   lateinit var pingThread: Thread
 
+  var isOpponentAvailable = false
+
   init {
     val uri = URI(url)
     val creds = "$username:$password"
@@ -44,9 +46,13 @@ class WsClient (val username: String, val password: String, val url: String) {
       override fun onMessage(bytes: ByteBuffer?) {
         val payload = bytes!!.array()
         val message = BinaryMessage.fromBytes(payload)
-//        println("BINARY MESSAGE \"${message.payload.size}\"")
-        binaryConsumers.forEach { it.accept(message) }
-
+//        println("BINARY MESSAGE \"${message.type.toString()}\"")
+        if (message.type == BinaryMessageType.PING_COMPANION_REQUEST) {
+          message.type = BinaryMessageType.PING_COMPANION_RESPONSE
+          send(message.toBytes())
+        } else {
+          binaryConsumers.forEach { it.accept(message) }
+        }
       }
 
       override fun onClose(i: Int, s: String, b: Boolean) {
@@ -77,6 +83,11 @@ class WsClient (val username: String, val password: String, val url: String) {
     stringConsumers.add(consumer)
   }
 
+  fun addBinary(consumer: Consumer<BinaryMessage>) {
+    binaryConsumers.add(consumer)
+  }
+
+
   fun send(message: BinaryMessage) {
     client.send(message.toBytes())
   }
@@ -99,7 +110,8 @@ class WsClient (val username: String, val password: String, val url: String) {
 
       val latestMessageRef = AtomicReference<BinaryMessage?>()
       binaryConsumers.add(Consumer<BinaryMessage> {
-        if (it.type == BinaryMessageType.PING_SERVER_RESPONSE) {
+        if ((it.type == BinaryMessageType.PING_SERVER_RESPONSE) ||
+            (it.type == BinaryMessageType.PING_COMPANION_RESPONSE)) {
           latestMessageRef.set(it)
         }
       })
@@ -108,22 +120,48 @@ class WsClient (val username: String, val password: String, val url: String) {
         if (!client.isOpen) {
           continue
         } else {
-          Thread.sleep(5000)
-          val begin = System.currentTimeMillis()
-          latestMessageRef.set(null)
-          send(BinaryMessage(BinaryMessageType.PING_SERVER_REQUEST, ByteArray(0)))
-          var end = System.currentTimeMillis()
-          while (latestMessageRef.get() == null) {
-            Thread.yield()
-            end = System.currentTimeMillis()
-            if ((end - begin) > 20000) {
-              println("TIMEOUT MS")
-              break
-            }
+          Thread.sleep(2000)
+          serverPing(latestMessageRef)
+          Thread.sleep(2000)
+          if (isOpponentAvailable) {
+            opponentPing(latestMessageRef)
           }
-          println("PING TO SRV IS ${end - begin} ms")
         }
       }
     }
+  }
+
+  private fun serverPing(latestMessageRef: AtomicReference<BinaryMessage?>) {
+    val begin = System.currentTimeMillis()
+    latestMessageRef.set(null)
+    send(BinaryMessage(BinaryMessageType.PING_SERVER_REQUEST, ByteArray(0)))
+    var end = System.currentTimeMillis()
+    while ((latestMessageRef.get() == null) ||
+        (latestMessageRef.get()!!.type == BinaryMessageType.PING_COMPANION_RESPONSE)) {
+      Thread.yield()
+      end = System.currentTimeMillis()
+      if ((end - begin) > 20000) {
+        println("TIMEOUT MS")
+        break
+      }
+    }
+    println("PING TO SRV IS ${end - begin} ms")
+  }
+
+  private fun opponentPing(latestMessageRef: AtomicReference<BinaryMessage?>) {
+    val begin = System.currentTimeMillis()
+    latestMessageRef.set(null)
+    send(BinaryMessage(BinaryMessageType.PING_COMPANION_REQUEST, ByteArray(0)))
+    var end = System.currentTimeMillis()
+    while ((latestMessageRef.get() == null) ||
+        (latestMessageRef.get()!!.type == BinaryMessageType.PING_SERVER_RESPONSE)) {
+      Thread.yield()
+      end = System.currentTimeMillis()
+      if ((end - begin) > 20000) {
+        println("TIMEOUT MS")
+        break
+      }
+    }
+    println("PING TO OPPONENT IS ${end - begin} ms")
   }
 }
