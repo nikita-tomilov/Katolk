@@ -20,6 +20,8 @@ import javafx.fxml.FXML
 import javafx.scene.control.*
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
+import javafx.scene.input.KeyEvent
+import javafx.scene.input.MouseEvent
 import javafx.scene.layout.BorderPane
 import javafx.scene.text.Font
 import javafx.scene.text.Text
@@ -32,10 +34,15 @@ import java.time.LocalDateTime
 import java.time.Period
 import java.time.ZoneOffset
 import java.util.function.Consumer
+import javafx.scene.layout.Pane
+import javafx.scene.layout.VBox
+
 
 class MainController {
 
   @FXML lateinit var paneCenter: BorderPane
+  @FXML lateinit var paneAboveDialog: VBox
+  @FXML lateinit var paneUserInfo: Pane
   @FXML lateinit var txtMessage: TextArea
   @FXML lateinit var wvMessageHistory: WebView
   @FXML lateinit var cmdSend: Button
@@ -43,12 +50,11 @@ class MainController {
   @FXML lateinit var paneMain: BorderPane
   @FXML lateinit var tfUser: TextFlow
   @FXML lateinit var tfMe: TextFlow
-  @FXML lateinit var tfCall: TextFlow
   @FXML lateinit var mnuBeginCall: MenuItem
   @FXML lateinit var mnuEndCall: MenuItem
 
-  @FXML lateinit var lblTalkingTo: Label
-  @FXML lateinit var lblTalkingTime: Label
+  @FXML lateinit var lblDialogWith: Label
+  @FXML lateinit var lblTalkWith: Label
 
   lateinit var feignRepository: FeignRepository
   lateinit var userClient: UserClient
@@ -90,6 +96,14 @@ class MainController {
         it.consume()
       }
     }
+    paneUserInfo.isVisible = false
+    paneUserInfo.isManaged = false
+    paneAboveDialog.isVisible = false
+    paneAboveDialog.isManaged = false
+    lblTalkWith.isVisible = false
+    lblTalkWith.isManaged = false
+    lblTalkWith.prefWidthProperty().bind(paneAboveDialog.widthProperty())
+    lblDialogWith.prefWidthProperty().bind(paneAboveDialog.widthProperty())
   }
 
   fun uiUpdateUserInfo(tf: TextFlow, user: UserJson) {
@@ -172,7 +186,7 @@ class MainController {
               lastMessage = extractMessagePreview(dialogue.latestMessage)
             }
 
-            val dialogueNameV = Text(dialogueName + "\n")
+            val dialogueNameV = Text(" $dialogueName\n")
             dialogueNameV.font = Font("Helvetica", 18.0)
 
             if (dialogue.unreadCount != 0) {
@@ -242,6 +256,9 @@ class MainController {
     if (dialogue == null) {
       wvMessageHistory.engine.loadContent("<html></html>")
       messagesOpponent = null
+      lblDialogWith.isVisible = false
+      paneAboveDialog.isVisible = lblDialogWith.isVisible || lblTalkWith.isVisible
+      paneAboveDialog.isManaged = paneAboveDialog.isVisible
       return
     }
 
@@ -254,10 +271,16 @@ class MainController {
     Platform.runLater {
       if (dialogue.participants.size == 2) {
         uiUpdateUserInfo(tfUser, messagesOpponent!!)
+        lblDialogWith.text = "Dialog with ${messagesOpponent!!.username}"
       } else {
         uiUpdateUserInfo(tfUser, dialogue)
+        lblDialogWith.text = "${dialogue.name}"
       }
       wvMessageHistory.engine.loadContent(html)
+
+      lblDialogWith.isVisible = true
+      paneAboveDialog.isVisible = true
+      paneAboveDialog.isManaged = paneAboveDialog.isVisible
     }
 
     if (messages.firstOrNull { (it.wasRead == false) && (it.author != me.username) } != null) {
@@ -271,15 +294,15 @@ class MainController {
     val img = BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB)
     val g = img.graphics
 
-    g.color = Color.GREEN
+    g.color = Color.decode("0x457313")
     g.fillOval(1, 1, 15, 15)
     onlineImage = SwingFXUtils.toFXImage(img, null)
 
-    g.color = Color.GRAY
+    g.color = Color.decode("0x802D15")
     g.fillOval(1, 1, 15, 15)
     offlineImage = SwingFXUtils.toFXImage(img, null)
 
-    g.color = Color.BLUE
+    g.color = Color.decode("0x113B51")
     g.fillOval(1, 1, 15, 15)
     conferenceImage = SwingFXUtils.toFXImage(img, null)
   }
@@ -305,6 +328,17 @@ class MainController {
     val opponent = this.callOpponent ?: return
     val callMessage = BinaryMessage(BinaryMessageType.CALL_END, opponent.id)
     wsClient.client.send(callMessage.toBytes())
+  }
+
+  @FXML
+  fun lblDialogWithClicked(event: MouseEvent) {
+    paneUserInfo.isVisible = !paneUserInfo.isVisible
+    paneUserInfo.isManaged = paneUserInfo.isVisible
+  }
+
+  @FXML
+  fun lblTalkWithClicked(event: MouseEvent) {
+
   }
 
   fun WsStringMsgHandler(msg: String) {
@@ -355,16 +389,16 @@ class MainController {
     callInProgress = true
     uiUpdateCallMenus()
     System.err.println("BEGIN CALL")
-    tfCall.isVisible = true
+    lblTalkWith.isVisible = true
+    lblTalkWith.isManaged = true
     callOpponent = user
     callThread = Thread(Runnable {
       var time = 0
       while (callInProgress) {
-        val mins = time / 60
-        val secs = time % 60
+        val mins = "${time / 60}".padStart(2, '0')
+        val secs = "${time % 60}".padStart(2, '0')
         Platform.runLater {
-          lblTalkingTo.text = "Call with ${user.username}"
-          lblTalkingTime.text = "$mins:$secs"
+          lblTalkWith.text = "Call with ${user.username} $mins:$secs"
         }
         Thread.sleep(1000)
         time++
@@ -390,6 +424,7 @@ class MainController {
     System.err.println("END CALL")
     callThread!!.join()
     callThread = null
-    tfCall.isVisible = false
+    lblTalkWith.isVisible = false
+    lblTalkWith.isManaged = false
   }
 }

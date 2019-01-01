@@ -10,7 +10,7 @@
 
 <BorderPane fx:id="paneMain" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="480.0" minWidth="640.0" prefHeight="480.0" prefWidth="640.0" style="-fx-background-color: #28784d;" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.programmer74.katolk.client.gui.MainController">
    <center>
-      <BorderPane fx:id="paneCenter" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+      <BorderPane fx:id="paneCenter" prefHeight="200.0" prefWidth="200.0" style="-fx-background-color: #ffffff;" BorderPane.alignment="CENTER">
          <center>
             <WebView fx:id="wvMessageHistory" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
                <BorderPane.margin>
@@ -18,7 +18,7 @@
                </BorderPane.margin></WebView>
          </center>
          <bottom>
-            <BorderPane prefHeight="80.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+            <BorderPane prefHeight="80.0" prefWidth="200.0" style="-fx-background-color: #78b494;" BorderPane.alignment="CENTER">
                <center>
                   <TextArea fx:id="txtMessage" prefHeight="75.0" prefWidth="120.0" promptText="Type message here..." wrapText="true" BorderPane.alignment="CENTER">
                      <BorderPane.margin>
@@ -28,43 +28,38 @@
                <right>
                   <Pane prefHeight="80.0" prefWidth="80.0" BorderPane.alignment="CENTER">
                      <children>
-                        <Button fx:id="cmdSend" layoutX="9.0" layoutY="2.0" mnemonicParsing="false" onAction="#cmdSendClick" text="Send" />
+                        <Button fx:id="cmdSend" layoutX="15.0" layoutY="14.0" mnemonicParsing="false" onAction="#cmdSendClick" prefHeight="53.0" prefWidth="51.0" style="-fx-border-radius: 30;;" text="Send" />
                      </children>
                   </Pane>
                </right>
             </BorderPane>
          </bottom>
          <top>
-            <Pane prefHeight="120.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+            <VBox fx:id="paneAboveDialog" BorderPane.alignment="CENTER">
                <children>
-                  <TextFlow fx:id="tfUser" layoutX="5.0" layoutY="5.0" prefHeight="110.0" prefWidth="190.0" style="-fx-background-color: #4b966e;">
-                     <padding>
-                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-                     </padding></TextFlow>
-                  <TextFlow fx:id="tfCall" layoutX="206.0" layoutY="5.0" prefHeight="110.0" prefWidth="190.0" style="-fx-background-color: #4b966e;" visible="false">
+                  <Label fx:id="lblDialogWith" alignment="CENTER" onMouseClicked="#lblDialogWithClicked" prefHeight="25.0" prefWidth="205.0" style="-fx-background-color: #28546c;" text="Dialog with XXX" textAlignment="CENTER" textFill="WHITE">
+                     <VBox.margin>
+                        <Insets />
+                     </VBox.margin>
                      <padding>
                         <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
                      </padding>
-                     <children>
-                        <Label fx:id="lblTalkingTo" prefHeight="26.0" prefWidth="177.0" text="Call with ?">
-                           <font>
-                              <Font name="Helvetica" size="22.0" />
-                           </font>
-                        </Label>
-                        <Label fx:id="lblTalkingTime" text="00:00">
-                           <font>
-                              <Font name="Helvetica" size="12.0" />
-                           </font>
-                        </Label>
-                     </children>
-                  </TextFlow>
+                  </Label>
+                  <Label fx:id="lblTalkWith" alignment="CENTER" onMouseClicked="#lblTalkWithClicked" prefHeight="25.0" prefWidth="208.0" style="-fx-background-color: #aa5239;" text="Talk to YYY" textAlignment="CENTER" textFill="WHITE">
+                     <VBox.margin>
+                        <Insets />
+                     </VBox.margin>
+                     <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </padding>
+                  </Label>
                </children>
-            </Pane>
+            </VBox>
          </top>
       </BorderPane>
    </center>
    <left>
-      <BorderPane prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+      <BorderPane prefHeight="451.0" prefWidth="221.0" style="-fx-background-color: #003c1c;" BorderPane.alignment="CENTER">
          <center>
             <ListView fx:id="lvDialogs" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
                <BorderPane.margin>
@@ -72,18 +67,20 @@
                </BorderPane.margin>
                <padding>
                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-               </padding></ListView>
+               </padding>
+            </ListView>
          </center>
-         <top>
-            <Pane prefHeight="120.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+         <bottom>
+            <Pane prefHeight="120.0" prefWidth="200.0" style="-fx-background-color: #78b494;" BorderPane.alignment="CENTER">
                <children>
-                  <TextFlow fx:id="tfMe" layoutX="5.0" layoutY="5.0" prefHeight="110.0" prefWidth="190.0" style="-fx-background-color: #4b966e;">
+                  <TextFlow fx:id="tfMe" layoutX="16.0" layoutY="5.0" prefHeight="110.0" prefWidth="190.0">
                      <padding>
                         <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-                     </padding></TextFlow>
+                     </padding>
+                  </TextFlow>
                </children>
             </Pane>
-         </top>
+         </bottom>
       </BorderPane>
    </left>
    <top>
@@ -108,4 +105,15 @@
         </menus>
       </MenuBar>
    </top>
+   <right>
+      <Pane fx:id="paneUserInfo" prefHeight="200.0" prefWidth="200.0" style="-fx-background-color: #c2e79a;" BorderPane.alignment="CENTER">
+         <children>
+            <TextFlow fx:id="tfUser" layoutX="5.0" layoutY="7.0" prefHeight="110.0" prefWidth="190.0">
+               <padding>
+                  <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+               </padding>
+            </TextFlow>
+         </children>
+      </Pane>
+   </right>
 </BorderPane>

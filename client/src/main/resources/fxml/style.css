@@ -1,0 +1,52 @@
+.text-area {
+    -fx-border-radius: 10 10 10 10;
+    -fx-background-radius: 10 10 10 10;
+}
+
+.text-area .scroll-pane {
+    -fx-background-color: transparent;
+}
+.text-area .scroll-pane .viewport{
+    -fx-background-color: transparent;
+}
+.text-area .scroll-pane .content{
+    -fx-background-color: transparent;
+}
+
+.list-view {
+    -fx-background-color: #003c1c;
+}
+
+/*.list-cell:filled:selected:focused, .list-cell:filled:selected {*/
+    /*!*-fx-background-color: linear-gradient(#328BDB 0%, #207BCF 25%, #1973C9 75%, #0A65BF 100%);*!*/
+    /*-fx-background-color: #113b51;*/
+    /*-fx-text-fill: white;*/
+/*}*/
+
+.list-cell {
+    -fx-padding: 10px 0px 10px 10px ;
+    -fx-background: #0f5a32;
+    -fx-background-color: transparent, -fx-background ;
+    -fx-background-insets: 0px, 5px ;
+}
+
+.list-cell:filled:selected:focused, .list-cell:filled:selected{
+    -fx-background: #4b966e;
+}
+
+.list-cell:filled:hover,
+.list-cell:filled:selected:hover  {
+    -fx-background: #78b494;
+}
+
+.list-cell:even {
+    -fx-background-color: transparent, -fx-background ;
+}
+
+.list-cell:odd {
+    -fx-background-color: transparent, -fx-background ;
+}
+
+.list-cell:empty {
+    -fx-background-color: transparent;
+}

@@ -56,6 +56,7 @@ class LoginController {
       val root = loader.load<Any>(javaClass.getResourceAsStream(fxmlFile)) as Parent
       stage!!.title = "Katolk Client"
       stage!!.scene = Scene(root)
+      stage!!.scene.stylesheets.add("fxml/style.css")
       stage!!.show()
       stage!!.setOnCloseRequest {
         System.exit(0)

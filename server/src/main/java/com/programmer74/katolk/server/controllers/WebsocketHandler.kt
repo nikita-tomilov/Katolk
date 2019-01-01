@@ -134,7 +134,11 @@ class WebsocketHandler(val userVault: UserVault,
                                 session: WebSocketSession,
                                 sender: UserEntity) {
     val requestedUser = userVault.getOnlineUser(clientRequest.intPayload())
-    if (requestedUser == null) {
+    if ((requestedUser == null) ||
+        (userVault.getOnlineSession(requestedUser) == null) ||
+        (userVault.getTalk(
+            userVault.getOnlineSession(requestedUser)!!
+        ) != null)) {
       val clientResponse = ClientBinaryMessage(ClientBinaryMessageType.CALL_ERROR,
           clientRequest.payload, sender)
       session.secureSendMessage(clientResponse)
