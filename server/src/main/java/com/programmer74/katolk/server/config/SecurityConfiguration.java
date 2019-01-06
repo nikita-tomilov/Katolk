@@ -7,6 +7,8 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 
+import javax.servlet.http.HttpServletResponse;
+
 @Configuration
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
@@ -20,9 +22,21 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
   @Override protected void configure(final HttpSecurity http)
   throws Exception {
-    http.authorizeRequests().anyRequest().authenticated()
+    http.authorizeRequests()
+        .antMatchers("/dummy")
+        .permitAll()
+        .anyRequest().authenticated()
         .and()
         .csrf().disable()
-        .httpBasic();
+        .httpBasic()
+        .and()
+        .logout()
+        .logoutUrl("/api/user/logout")
+        .permitAll()
+        .logoutSuccessHandler((httpServletRequest, httpServletResponse, authentication) -> {
+          httpServletResponse.setStatus(HttpServletResponse.SC_OK);
+        })
+        .invalidateHttpSession(true)
+        .deleteCookies("JSESSIONID");
   }
 }
