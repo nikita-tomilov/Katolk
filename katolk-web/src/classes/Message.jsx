@@ -5,14 +5,22 @@ export default class Message extends Component {
     super();
     this.props = props;
   }
+
+  getMessageType() {
+    if (this.props.message.authorId === this.props.me.id) {
+      return "MineMessage";
+    }
+    return "NotMineMessage";
+  }
+
   render() {
     return (
-      <div className="Message">
+      <div className={"Message " + this.getMessageType()}>
         <div className="MessageAuthor">
-          {this.props.author}
+          {this.props.message.author}
         </div>
         <div className="MessageBody">
-          {this.props.text}
+          {this.props.message.body}
         </div>
       </div>
     )

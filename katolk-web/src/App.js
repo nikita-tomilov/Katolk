@@ -5,23 +5,38 @@ import './App.css';
 import Clock from './classes/clock.jsx';
 import Toggle from './classes/toggle.jsx';
 import UserAuth from './classes/UserAuth.jsx';
-import Message from './classes/message.jsx';
-
+import DialogsList from './classes/DialogsList.jsx';
+import Dialog from './classes/Dialog.jsx';
 
 class App extends Component {
 
-  login(state) {
-    // alert(state.login + ' ' + state.password);
+  constructor(props) {
+    super(props);
+    this.state = {
+      authorized: false,
+      dialogPicked: null,
+      me: null
+    }
+  }
 
+  login(state) {
+    this.setState({authorized: state.authorized, dialogPicked: null, me: state.user})
+  }
+
+  changeDialogPicked(dialog) {
+    // console.log(dialog);
+    this.setState({dialogPicked: dialog});
   }
 
   render() {
     return (
       <div className="App">
         <Clock />
-        <Message author="message author" text="message content" />
         <Toggle />
         <UserAuth callback={(e) => this.login(e)}/>
+          {this.state.authorized && <DialogsList onDialogPicked={(e) => this.changeDialogPicked(e)} />}
+          {this.state.authorized && <Dialog dialogPicked={this.state.dialogPicked} me={this.state.me}/>
+          }
       </div>
     );
   }

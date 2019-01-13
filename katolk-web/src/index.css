@@ -12,3 +12,37 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
+
+.Message {
+
+}
+
+.DialogEntry {
+  padding: 10px 0px 10px 10px ;
+  background: #0f5a32;
+}
+
+.DialogEntry:hover {
+  background: #78b494;
+}
+
+.Message {
+  max-width: 70%;
+  clear:both;
+  padding: 10px;
+}
+.MineMessage {
+  background-color: #4B966E;
+  text-align: left;
+  float:right;
+  border-radius: 25px 25px 5px 25px;
+}
+.NotMineMessage {
+  background-color: #477187;
+  text-align: left;
+  float:left;
+  border-radius: 25px 25px 25px 5px;
+}
+/*.unread {*/
+  /*background-color: #0F5A32;*/
+/*}*/

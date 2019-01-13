@@ -60,6 +60,7 @@ export default class UserAuth extends React.Component {
           });
         Cookies.setCookie("login", login);
         Cookies.setCookie("javacookie", "ok");
+        capture.state.callback(capture.state);
         // alert('YOU ARE ' + response.data.username);
       })
       .catch(function(error) {
@@ -68,8 +69,8 @@ export default class UserAuth extends React.Component {
         }
         capture.setState(
           {authorized: false, user: null, api: null});
+        capture.state.callback(capture.state);
       });
-    this.state.callback(this.state);
   }
 
   handleSubmit(event) {
@@ -85,6 +86,7 @@ export default class UserAuth extends React.Component {
         capture.setState({authorized: false,
           user: null, api: null, password: ''});
         Cookies.setCookie("javacookie", "");
+        capture.state.callback(capture.state);
       });
   }
 
