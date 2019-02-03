@@ -62,7 +62,7 @@ class WebsocketHandler(val userVault: UserVault,
   @Throws(Exception::class)
   override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
     sessions.remove(session)
-    val user = userVault.getOnlineUser(session)!!
+    val user = userVault.getOnlineUser(session) ?: return
     userVault.dropOnlineUser(session)
 
     if (userVault.getOnlineSession(user) == null) {

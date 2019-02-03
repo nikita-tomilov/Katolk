@@ -1,4 +1,5 @@
 import React, {Component} from 'react';
+import Websocket from 'react-websocket';
 import DialogEntry from './DialogEntry.jsx';
 import axios from "axios/index";
 
@@ -51,10 +52,31 @@ export default class DialogsList extends Component {
     this.state.onDialogPicked(e);
   }
 
+  onWsOpened() {
+    console.log("WS OPENED")
+  }
+
+  onWsClosed() {
+    console.log("WS CLOSED")
+  }
+
+  onWsData(data) {
+    console.log(data);
+  }
+
+  getWsUrl() {
+    return "ws://localhost:3000/api/ws/websocket"
+  }
+
   render() {
     return (
       <div className="DialogsList">
-          {this.state.entries}
+        {this.state.entries}
+        <Websocket  url={this.getWsUrl()}
+                    onMessage={this.onWsData.bind(this)}
+                    onOpen={this.onWsOpened()}
+                    onClose={this.onWsClosed()}
+                    debug={true}/>
       </div>
     )
   }
