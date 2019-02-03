@@ -92,6 +92,8 @@ class DialogController {
       throw ForbiddenException()
     }
 
+    markMessagesInDialogueAsRead(dialogueId)
+
     val dialogue = dialogs.dialogs.findById(dialogueId).get()
     val message =  messages.sendMessage(me, dialogue, msg.body)
 

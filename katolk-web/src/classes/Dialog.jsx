@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import Message from './Message.jsx';
+import MessageInput from './MessageInput.jsx';
 import axios from "axios/index";
 
 export default class Dialog extends Component {
@@ -27,10 +28,10 @@ export default class Dialog extends Component {
 
     api.get(url)
       .then(function(response) {
-        console.log(response.data);
+        // console.log(response.data);
         response.data.forEach(function(message) {
 
-          console.log(message);
+          // console.log(message);
           messages.push(<Message
             message={message}
             me={capture.props.me}
@@ -65,6 +66,7 @@ export default class Dialog extends Component {
         <div className="DialogHeader">
           Dialog {this.state.dialogPicked.name}
         </div>
+        <MessageInput dialogueID={this.state.dialogPicked.id} />
         {this.state.messages}
       </div>
     )

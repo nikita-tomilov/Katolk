@@ -46,3 +46,7 @@ code {
 /*.unread {*/
   /*background-color: #0F5A32;*/
 /*}*/
+
+textarea {
+  display: block;
+}

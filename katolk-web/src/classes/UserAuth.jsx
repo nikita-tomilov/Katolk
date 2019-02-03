@@ -6,7 +6,7 @@ export default class UserAuth extends React.Component {
   constructor(props) {
     super(props);
     this.state = {login: '', password: '', callback: props.callback,
-      authorized: false, user: null, api: null};
+      authorized: null, user: null, api: null};
 
     this.handleChangeLogin = this.handleChangeLogin.bind(this);
     this.handleChangePassword = this.handleChangePassword.bind(this);
@@ -22,6 +22,8 @@ export default class UserAuth extends React.Component {
       (Cookies.getCookie("javacookie") !== "")){
       this.setState({password: Cookies.getCookie("password")});
       this.performAuthorize(Cookies.getCookie("login"), "whatever", true);
+    } else {
+      this.setState({authorized: false})
     }
   }
 
@@ -90,6 +92,14 @@ export default class UserAuth extends React.Component {
       });
   }
 
+  renderIfUnknown() {
+    return (
+      <div id="UserAuth">
+        Checking credentials...
+      </div>
+    )
+  }
+
   renderIfAuthorized() {
     return (
       <div id="UserAuth">
@@ -120,6 +130,9 @@ export default class UserAuth extends React.Component {
   }
 
   render() {
+    if (this.state.authorized == null) {
+      return this.renderIfUnknown();
+    }
     if (this.state.authorized) return this.renderIfAuthorized();
     return this.renderIfNotAuthorized()
   }
