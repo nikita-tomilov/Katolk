@@ -33,7 +33,8 @@ export default class Dialog extends Component {
           console.log(message);
           messages.push(<Message
             message={message}
-            me={capture.props.me}/>);
+            me={capture.props.me}
+            key={message.id}/>);
         });
         if (messages.length === 0) {
           messages.push(<Message

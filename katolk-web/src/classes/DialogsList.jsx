@@ -7,7 +7,11 @@ export default class DialogsList extends Component {
   constructor(props) {
     super();
     this.props = props;
-    this.state = {entries: [], onDialogPicked: props.onDialogPicked}
+    this.state = {
+      entries: [],
+      onDialogPicked: props.onDialogPicked,
+      pickedDialog: null
+    }
   }
 
   componentDidMount() {
@@ -35,6 +39,7 @@ export default class DialogsList extends Component {
           entries.push(<DialogEntry
               name={dialogName}
               msg={latestMsgPreview}
+              key={dialog.id}
               onclick={(e) => capture.onDialogPicked(dialog)}/>);
         });
         capture.setState({entries: entries})
@@ -49,6 +54,7 @@ export default class DialogsList extends Component {
   }
 
   onDialogPicked(e) {
+    this.setState({pickedDialog: e})
     this.state.onDialogPicked(e);
   }
 
@@ -62,6 +68,12 @@ export default class DialogsList extends Component {
 
   onWsData(data) {
     console.log(data);
+    if (data === "UPDATE") {
+      this.updateDialogEntries();
+      if (this.state.pickedDialog != null) {
+        this.state.onDialogPicked(this.state.pickedDialog);
+      }
+    }
   }
 
   getWsUrl() {
