@@ -5,6 +5,8 @@ import com.programmer74.katolk.server.entity.ClientBinaryMessageType
 import com.programmer74.katolk.server.entity.UserEntity
 import com.programmer74.katolk.server.repositories.DialogVault
 import com.programmer74.katolk.server.repositories.UserVault
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.*
 import org.springframework.web.socket.handler.BinaryWebSocketHandler
@@ -25,16 +27,7 @@ class WebsocketHandler(val userVault: UserVault,
 
   @Throws(InterruptedException::class, IOException::class)
   public override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
-    if (message.payload.startsWith("AUTH")) {
-      val username = message.payload.split(" ")[1]
-      val password = message.payload.split(" ")[2]
-      val user = userVault.repository.findByUsername(username)!!
-      if (userVault.checkPasswordMatches(user, password)) {
-        userVault.addOnlineUser(user, session)
-        notifyAboutUserStateChange(user)
-        session.sendMessage(TextMessage("AUTH_OK"))
-      }
-    }
+
   }
 
   fun notifyUserAboutNewMessage(user: UserEntity) {
@@ -55,8 +48,14 @@ class WebsocketHandler(val userVault: UserVault,
 
   @Throws(Exception::class)
   override fun afterConnectionEstablished(session: WebSocketSession?) {
-    //the messages will be broadcasted to all users.
-    sessions.add(session!!)
+    val token = (session!!.principal as UsernamePasswordAuthenticationToken)
+    if (token.isAuthenticated) {
+      val username = token.principal as String
+      val user = userVault.repository.findByUsername(username)!!
+      userVault.addOnlineUser(user, session)
+      notifyAboutUserStateChange(user)
+    }
+    sessions.add(session)
   }
 
   @Throws(Exception::class)

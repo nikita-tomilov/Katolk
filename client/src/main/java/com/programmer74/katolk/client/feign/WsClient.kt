@@ -35,7 +35,6 @@ class WsClient (val username: String, val password: String, val url: String) {
     client = object : WebSocketClient(uri, headers) {
       override fun onOpen(serverHandshake: ServerHandshake) {
         println("OPENED")
-        this.send("AUTH $username $password")
       }
 
       override fun onMessage(s: String) {
