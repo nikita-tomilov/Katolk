@@ -104,7 +104,7 @@ export default class UserAuth extends React.Component {
     return (
       <div id="UserAuth">
         <p>Welcome back, {this.state.user.username}</p>
-        <button onClick={this.handleLogout}>Logout</button>
+        <button id="logoutButton" onClick={this.handleLogout}>Logout</button>
       </div>
     )
   }
@@ -112,18 +112,25 @@ export default class UserAuth extends React.Component {
   renderIfNotAuthorized() {
     return (
       <div id="UserAuth">
+        Welcome to Katolk. Please, log in
         <form onSubmit={this.handleSubmit}>
           <label>
             Login: <br />
-            <input type="text" value={this.state.login} onChange={this.handleChangeLogin} />
+            <input id="loginBox"
+                   type="text"
+                   value={this.state.login}
+                   onChange={this.handleChangeLogin} />
           </label>
           <br />
           <label>
             Password: <br />
-            <input type="password" value={this.state.password} onChange={this.handleChangePassword} />
+            <input id="passwordBox"
+                   type="password"
+                   value={this.state.password}
+                   onChange={this.handleChangePassword} />
           </label>
           <br />
-          <input type="submit" value="Login" />
+          <input id="loginButton" type="submit" value="Login" />
         </form>
       </div>
     );

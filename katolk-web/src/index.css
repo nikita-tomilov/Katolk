@@ -50,3 +50,26 @@ code {
 textarea {
   display: block;
 }
+
+#UserAuth {
+  background-color: #4B966E;
+  border-radius: 10px 10px 10px 10px;
+  margin: 10px;
+  padding: 10px;
+}
+
+#UserAuth button, input {
+  background-color: #78b494;
+}
+
+#loginBox, #passwordBox, #loginButton, #logoutButton {
+  background-color: #78b494;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  border-radius:6px;
+  color: black;
+}
+
+#loginButton:hover, #logoutButton:hover {
+  background-color: white;
+}
