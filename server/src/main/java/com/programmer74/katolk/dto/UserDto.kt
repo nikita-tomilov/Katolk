@@ -18,7 +18,7 @@ data class UserDto(
     fun from(user: User): UserDto {
       return UserDto(user.id!!,
           user.username,
-          false,
+          true,
           "name ${user.id}",
           "surname ${user.id}",
           0L,

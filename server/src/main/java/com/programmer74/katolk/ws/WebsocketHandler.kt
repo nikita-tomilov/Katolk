@@ -50,7 +50,7 @@ class WebsocketHandler(
         .flatten()
         .toSet()
     participants.forEach {
-      System.err.println("Scheduling ${it.username} about it")
+      logger.warn { "Notifying user $it about state change of user $user" }
       sendUpdate(it)
     }
   }
@@ -232,7 +232,11 @@ class WebsocketHandler(
 
   private fun WebSocketSession.secureSendMessage(msg: WebSocketMessage<*>) {
     synchronized(this) {
-      sendMessage(msg)
+      try {
+        sendMessage(msg)
+      } catch (e: Exception) {
+        logger.error(e) { "Error in secureSendMessage" }
+      }
     }
   }
 
