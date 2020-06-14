@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    hikari:
+      connectionTimeout: 20000
+      maximumPoolSize: 5
+    url: jdbc:postgresql://localhost:5432/katolk_database
+    username: server_user
+    password: ERVb95UQhjV7pBnKUxHCe9nrqRrq7tGQ
+  jpa:
+    hibernate:
+      ddl-auto: validate # changes to db schema are handled by flyway
+  flyway:
+    locations: classpath:db/migrations
+    enabled: true
+    baselineOnMigrate: true
+server:
+  port: 8081

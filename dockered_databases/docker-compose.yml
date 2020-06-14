@@ -1,0 +1,11 @@
+version: '3'
+services:
+  postgre:
+    build:
+      context: ./containers/postgre
+    ports:
+      - 5432:5432
+    image: katolk_postgre_image
+    container_name: katolk_postgre
+    volumes:
+      - ~/katolk_data/postgre:/var/lib/postgresql/data
