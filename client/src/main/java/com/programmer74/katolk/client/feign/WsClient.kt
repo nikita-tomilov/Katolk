@@ -11,11 +11,16 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
 
-class WsClient (val username: String, val password: String, val url: String) {
+class WsClient(
+  private val username: String,
+  private val password: String,
+  private val url: String,
+  private val token: String
+) {
 
   val headers = HashMap<String, String>()
 
-  val client : WebSocketClient
+  val client: WebSocketClient
 
   val stringConsumers = ArrayList<Consumer<String>>()
 
@@ -29,9 +34,7 @@ class WsClient (val username: String, val password: String, val url: String) {
 
   init {
     val uri = URI(url)
-    val creds = "$username:$password"
-    val base64creds = Base64.getEncoder().encodeToString(creds.toByteArray())
-    headers.put("Authorization", "Basic $base64creds")
+    headers.put("Authorization", "Bearer $token")
     client = object : WebSocketClient(uri, headers) {
       override fun onOpen(serverHandshake: ServerHandshake) {
         println("OPENED")
@@ -46,7 +49,7 @@ class WsClient (val username: String, val password: String, val url: String) {
       override fun onMessage(bytes: ByteBuffer?) {
         val payload = bytes!!.array()
         val message = BinaryMessage.fromBytes(payload)
-//        println("BINARY MESSAGE \"${message.type.toString()}\"")
+        //        println("BINARY MESSAGE \"${message.type.toString()}\"")
         if (message.type == BinaryMessageType.PING_COMPANION_REQUEST) {
           message.type = BinaryMessageType.PING_COMPANION_RESPONSE
           send(message.toBytes())
@@ -87,11 +90,9 @@ class WsClient (val username: String, val password: String, val url: String) {
     binaryConsumers.add(consumer)
   }
 
-
   fun send(message: BinaryMessage) {
     client.send(message.toBytes())
   }
-
 
   private fun setupReconnectThread() {
     reconnectThread = Thread {
@@ -111,7 +112,8 @@ class WsClient (val username: String, val password: String, val url: String) {
       val latestMessageRef = AtomicReference<BinaryMessage?>()
       binaryConsumers.add(Consumer<BinaryMessage> {
         if ((it.type == BinaryMessageType.PING_SERVER_RESPONSE) ||
-            (it.type == BinaryMessageType.PING_COMPANION_RESPONSE)) {
+            (it.type == BinaryMessageType.PING_COMPANION_RESPONSE)
+        ) {
           latestMessageRef.set(it)
         }
       })
@@ -137,7 +139,8 @@ class WsClient (val username: String, val password: String, val url: String) {
     send(BinaryMessage(BinaryMessageType.PING_SERVER_REQUEST, ByteArray(0)))
     var end = System.currentTimeMillis()
     while ((latestMessageRef.get() == null) ||
-        (latestMessageRef.get()!!.type == BinaryMessageType.PING_COMPANION_RESPONSE)) {
+        (latestMessageRef.get()!!.type == BinaryMessageType.PING_COMPANION_RESPONSE)
+    ) {
       Thread.yield()
       end = System.currentTimeMillis()
       if ((end - begin) > 20000) {
@@ -154,7 +157,8 @@ class WsClient (val username: String, val password: String, val url: String) {
     send(BinaryMessage(BinaryMessageType.PING_COMPANION_REQUEST, ByteArray(0)))
     var end = System.currentTimeMillis()
     while ((latestMessageRef.get() == null) ||
-        (latestMessageRef.get()!!.type == BinaryMessageType.PING_SERVER_RESPONSE)) {
+        (latestMessageRef.get()!!.type == BinaryMessageType.PING_SERVER_RESPONSE)
+    ) {
       Thread.yield()
       end = System.currentTimeMillis()
       if ((end - begin) > 20000) {

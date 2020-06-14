@@ -8,7 +8,7 @@
     <children>
       <TextField id="txtUrl" fx:id="txtUrl" layoutX="65.0" layoutY="78.0" text="http://localhost:8080" />
         <TextField fx:id="txtUsername" layoutX="65.0" layoutY="138.0" text="user1" />
-        <PasswordField fx:id="txtPassword" layoutX="65.0" layoutY="193.0" text="user1" />
+        <PasswordField fx:id="txtPassword" layoutX="65.0" layoutY="193.0" text="user1password" />
         <Button fx:id="cmdGo" layoutX="173.0" layoutY="230.0" mnemonicParsing="false" onAction="#cmdGoClick" prefHeight="25.0" prefWidth="62.0" text="Go" />
         <Label layoutX="64.0" layoutY="170.0" text="Password" />
         <Label layoutX="67.0" layoutY="116.0" text="Username" />
