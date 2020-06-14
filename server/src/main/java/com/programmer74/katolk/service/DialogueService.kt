@@ -10,12 +10,13 @@ import com.programmer74.katolk.dto.UserDto
 import com.programmer74.katolk.repository.DialogueParticipantRepository
 import com.programmer74.katolk.repository.DialogueRepository
 import javassist.NotFoundException
+import mu.KLogging
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import javax.annotation.PostConstruct
 
 @Service
-class DialogService(
+class DialogueService(
   val dialogueRepository: DialogueRepository,
   val dialogueParticipantRepository: DialogueParticipantRepository,
   val userService: UserService,
@@ -69,7 +70,7 @@ class DialogService(
               .map { userId -> UserDto.from(userService.findUserById(userId)) }
               .toList(),
           messagesService.latestMessageInDialogueAsJson(it),
-          messagesService.messageRepository.findByDialogueIDAndWasRead(it.safeId(), false).size)
+          messagesService.getUnreadMessagesCount(it))
     }.sortedByDescending {
       if (it.latestMessage != null) it.latestMessage.date else 0
     }
@@ -121,25 +122,32 @@ class DialogService(
   }
 
   @PostConstruct
-  fun initUsers() {
-    //TODO: do this by migration
-    //    val admin = users.repository.findByUsername("admin")!!
-    //    val user1 = users.repository.findByUsername("user1")!!
-    //    val user2 = users.repository.findByUsername("user2")!!
-    //
-    //    val dialogue = createDialogue(user1, user2)
-    //
-    //    val conference = createDialogue(admin, "conference")
-    //    addParticipant(conference, user1)
-    //    addParticipant(conference, user2)
-    //
-    //    val talkToUrself = createDialogue(user1, "Private chat")
-    //
-    //    messages.sendMessage(admin, conference, "Broadcast to users1&2")
-    //    messages.sendMessage(user1, conference, "Reply from user1")
-    //    val msg =
-    //        messages.sendMessage(user1, talkToUrself, "This is your private dialogue with yourself")
-    //    msg.wasRead = true
-    //    messages.messageRepository.save(msg)
+  private fun initDialogues() {
+    if (dialogueRepository.findAll().toList().isNotEmpty()) return
+
+    logger.warn { "Performing MANUAL SOFTWARE MIGRATION" }
+
+    val admin = userService.loadUserByUsernameOrNull("admin") ?: return
+    val user1 = userService.loadUserByUsernameOrNull("user1") ?: return
+    val user2 = userService.loadUserByUsernameOrNull("user2") ?: return
+
+    val dialogue = createDialogue(user1, user2)
+
+    val conference = createDialogue(admin, "conference")
+    addParticipant(conference, user1)
+    addParticipant(conference, user2)
+
+    val talkToUrself = createDialogue(user1, "Private chat")
+
+    messagesService.sendMessage(admin, conference, "Broadcast to users1&2")
+    messagesService.sendMessage(user1, conference, "Reply from user1")
+    val msg =
+        messagesService.sendMessage(
+            user1,
+            talkToUrself,
+            "This is your private dialogue with yourself")
+    messagesService.markMessageAsRead(msg)
   }
+
+  companion object : KLogging()
 }

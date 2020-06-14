@@ -4,7 +4,7 @@ import com.programmer74.katolk.dao.DialogueEntity
 import com.programmer74.katolk.dao.MessageEntity
 import com.programmer74.katolk.dto.DialogueDto
 import com.programmer74.katolk.dto.MessageDto
-import com.programmer74.katolk.service.DialogService
+import com.programmer74.katolk.service.DialogueService
 import com.programmer74.katolk.service.MessagesService
 import com.programmer74.katolk.service.UserService
 import org.springframework.http.HttpStatus
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*
 class DialogController(
   private val userService: UserService,
   private val messagesService: MessagesService,
-  private val dialogService: DialogService
+  private val dialogService: DialogueService
 ) {
 
   //  @Autowired

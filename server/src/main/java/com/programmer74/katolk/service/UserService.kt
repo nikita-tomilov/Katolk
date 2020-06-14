@@ -27,7 +27,7 @@ class UserService(
     throw UsernameNotFoundException(username)
   }
 
-  private fun loadUserByUsernameOrNull(username: String): User? {
+  fun loadUserByUsernameOrNull(username: String): User? {
     return userRepository.findByUsername(username)
   }
 

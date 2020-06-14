@@ -10,8 +10,8 @@ import java.time.Instant
 
 @Service
 class MessagesService(
-  val messageRepository: MessageRepository,
-  val usersService: UserService
+  private val messageRepository: MessageRepository,
+  private val usersService: UserService
 ) {
   fun latestMessageInDialogue(dialogue: DialogueEntity): MessageEntity? {
     return messageRepository.findFirstByDialogueIDOrderByTimestampDesc(dialogue.safeId())
@@ -31,6 +31,10 @@ class MessagesService(
 
   fun messagesInDialogueAsJson(dialogue: DialogueEntity): List<MessageDto> {
     return messagesInDialogue(dialogue).map { getMessageRepresentation(it) }
+  }
+
+  fun getUnreadMessagesCount(dialogue: DialogueEntity): Int {
+    return messageRepository.findByDialogueIDAndWasRead(dialogue.safeId(), false).size
   }
 
   fun sendMessage(author: User, dialogue: DialogueEntity, body: String): MessageEntity {
@@ -57,5 +61,10 @@ class MessagesService(
           it.wasRead = true
           messageRepository.save(it)
         }
+  }
+
+  fun markMessageAsRead(msg: MessageEntity) {
+    msg.wasRead = true
+    messageRepository.save(msg)
   }
 }
