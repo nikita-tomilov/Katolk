@@ -69,4 +69,8 @@ data class User(
   }
 
   fun safeId(): Long = id ?: error("should-never-happen")
+
+  override fun toString(): String {
+    return "$id $username"
+  }
 }

@@ -1,6 +1,7 @@
 package com.programmer74.katolk.service
 
 import com.programmer74.katolk.dao.User
+import com.programmer74.katolk.repository.OnlineUserRepositorySingleton
 import mu.KLogging
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
@@ -17,10 +18,12 @@ class OnlineUserService(
 
   fun setOnlineInDatabase(user: User) {
     logger.warn { "Invoked setOnline on user $user" }
+    OnlineUserRepositorySingleton.get().addUser(user)
   }
 
   fun setOfflineInDatabase(user: User) {
     logger.warn { "Invoked setOffline on user $user" }
+    OnlineUserRepositorySingleton.get().removeUser(user)
   }
 
   fun checkPasswordMatches(user: User, password: String): Boolean {

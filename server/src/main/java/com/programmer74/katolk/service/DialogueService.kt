@@ -9,19 +9,24 @@ import com.programmer74.katolk.dto.MessageDto
 import com.programmer74.katolk.dto.UserDto
 import com.programmer74.katolk.repository.DialogueParticipantRepository
 import com.programmer74.katolk.repository.DialogueRepository
+import com.programmer74.katolk.ws.WebsocketHandler
 import javassist.NotFoundException
 import mu.KLogging
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import javax.annotation.PostConstruct
 
 @Service
 class DialogueService(
-  val dialogueRepository: DialogueRepository,
-  val dialogueParticipantRepository: DialogueParticipantRepository,
-  val userService: UserService,
-  val messagesService: MessagesService
+  private val dialogueRepository: DialogueRepository,
+  private val dialogueParticipantRepository: DialogueParticipantRepository,
+  private val userService: UserService,
+  private val messagesService: MessagesService
 ) {
+
+  @Autowired
+  private lateinit var websocketHandler: WebsocketHandler
 
   fun createDialogue(creator: User, name: String): DialogueEntity {
     var dialogue = DialogueEntity(0, creator.safeId(), name)
@@ -94,13 +99,8 @@ class DialogueService(
     val unreadMessages = messagesService.unreadMessagesInDialogue(dialogue)
     if (unreadMessages.isNotEmpty()) {
       messagesService.markMessagesInDialogueAsRead(unreadMessages)
-      //TODO: fix other user notifications
-      //
-      //      val userIds = participants.map { it.userID }
-      //      val users = users.repository.findAllById(userIds)
-      //          .toList()
-      //
-      //      users.forEach { websocketHandler.notifyUserAboutNewMessage(it) }
+      val participants = getDialogueParticipants(dialogueId)
+      participants.forEach { websocketHandler.notifyUserAboutNewMessage(it) }
     }
   }
 
@@ -110,15 +110,16 @@ class DialogueService(
       ?: throw NotFoundException("no dialogue or no access to $dialogueId")
 
     val sentMessage = messagesService.sendMessage(user, dialogue, message.body)
-
-    //TODO: fix other user notifications
-    //
-    //      val userIds = participants.map { it.userID }
-    //      val users = users.repository.findAllById(userIds)
-    //          .toList()
-    //
-    //      users.forEach { websocketHandler.notifyUserAboutNewMessage(it) }
+    val participants = getDialogueParticipants(dialogueId)
+    participants.forEach { websocketHandler.notifyUserAboutNewMessage(it) }
     return sentMessage
+  }
+
+  fun getDialogueParticipants(dialogueId: Long): List<User> {
+    val participants =
+        dialogueParticipantRepository.findAllByDialogueID(dialogueId) ?: return emptyList()
+    val userIds = participants.map { it.userID }
+    return userService.findUsersByIds(userIds)
   }
 
   @PostConstruct

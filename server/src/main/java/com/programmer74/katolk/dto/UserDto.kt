@@ -1,6 +1,7 @@
 package com.programmer74.katolk.dto
 
 import com.programmer74.katolk.dao.User
+import com.programmer74.katolk.repository.OnlineUserRepositorySingleton
 
 data class UserDto(
   val id: Long = 0,
@@ -18,7 +19,7 @@ data class UserDto(
     fun from(user: User): UserDto {
       return UserDto(user.id!!,
           user.username,
-          true,
+          OnlineUserRepositorySingleton.get().isUserOnline(user),
           "name ${user.id}",
           "surname ${user.id}",
           0L,

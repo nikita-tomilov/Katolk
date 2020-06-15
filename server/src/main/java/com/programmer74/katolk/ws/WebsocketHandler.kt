@@ -39,18 +39,18 @@ class WebsocketHandler(
     }
   }
 
-  fun notifyUserAboutNewMessage(user: User) {
-    notifyQueue.add(user)
+  fun notifyUserAboutNewMessage(userToBeNotified: User) {
+    notifyQueue.add(userToBeNotified)
   }
 
-  fun notifyAboutUserStateChange(user: User) {
-    val dialogs = dialogueService.getDialogs(user)
+  fun notifyAboutUserStateChange(userHavingStateChanged: User) {
+    val dialogs = dialogueService.getDialogs(userHavingStateChanged)
     val participants = dialogs
         .map { dialogueService.getParticipants(it) }
         .flatten()
         .toSet()
     participants.forEach {
-      logger.warn { "Notifying user $it about state change of user $user" }
+      logger.warn { "Notifying userHavingStateChanged $it about state change of user $userHavingStateChanged" }
       sendUpdate(it)
     }
   }
@@ -68,10 +68,7 @@ class WebsocketHandler(
     onlineUserService.dropOnlineUser(session)
 
     if (onlineUserService.getOnlineSession(user) == null) {
-      //TODO: handle user becoming OFFLINE
-      //      user.lastOnline = Instant.now().toEpochMilli()
-      //      user.online = false
-      //      userService.repository.save(user)
+      onlineUserService.setOfflineInDatabase(user)
     }
 
     notifyAboutUserStateChange(user)
