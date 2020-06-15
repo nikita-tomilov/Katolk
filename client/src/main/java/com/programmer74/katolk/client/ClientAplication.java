@@ -22,5 +22,6 @@ public class ClientAplication extends Application {
     stage.show();
     LoginController controller = loader.getController();
     controller.setStage(stage);
+    controller.performPostConstruct();
   }
 }

@@ -20,9 +20,10 @@ import javafx.fxml.FXML
 import javafx.scene.control.*
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
-import javafx.scene.input.KeyEvent
 import javafx.scene.input.MouseEvent
 import javafx.scene.layout.BorderPane
+import javafx.scene.layout.Pane
+import javafx.scene.layout.VBox
 import javafx.scene.text.Font
 import javafx.scene.text.Text
 import javafx.scene.text.TextFlow
@@ -34,27 +35,38 @@ import java.time.LocalDateTime
 import java.time.Period
 import java.time.ZoneOffset
 import java.util.function.Consumer
-import javafx.scene.layout.Pane
-import javafx.scene.layout.VBox
-
 
 class MainController {
 
-  @FXML lateinit var paneCenter: BorderPane
-  @FXML lateinit var paneAboveDialog: VBox
-  @FXML lateinit var paneUserInfo: Pane
-  @FXML lateinit var txtMessage: TextArea
-  @FXML lateinit var wvMessageHistory: WebView
-  @FXML lateinit var cmdSend: Button
-  @FXML lateinit var lvDialogs: ListView<DialogueJson>
-  @FXML lateinit var paneMain: BorderPane
-  @FXML lateinit var tfUser: TextFlow
-  @FXML lateinit var tfMe: TextFlow
-  @FXML lateinit var mnuBeginCall: MenuItem
-  @FXML lateinit var mnuEndCall: MenuItem
+  @FXML
+  lateinit var paneCenter: BorderPane
+  @FXML
+  lateinit var paneAboveDialog: VBox
+  @FXML
+  lateinit var paneUserInfo: Pane
+  @FXML
+  lateinit var txtMessage: TextArea
+  @FXML
+  lateinit var wvMessageHistory: WebView
+  @FXML
+  lateinit var cmdSend: Button
+  @FXML
+  lateinit var lvDialogs: ListView<DialogueJson>
+  @FXML
+  lateinit var paneMain: BorderPane
+  @FXML
+  lateinit var tfUser: TextFlow
+  @FXML
+  lateinit var tfMe: TextFlow
+  @FXML
+  lateinit var mnuBeginCall: MenuItem
+  @FXML
+  lateinit var mnuEndCall: MenuItem
 
-  @FXML lateinit var lblDialogWith: Label
-  @FXML lateinit var lblTalkWith: Label
+  @FXML
+  lateinit var lblDialogWith: Label
+  @FXML
+  lateinit var lblTalkWith: Label
 
   lateinit var feignRepository: FeignRepository
   lateinit var userClient: UserClient
@@ -283,10 +295,12 @@ class MainController {
       paneAboveDialog.isManaged = paneAboveDialog.isVisible
     }
 
-    if (messages.firstOrNull { (it.wasRead == false) && (it.author != me.username) } != null) {
-//      Platform.runLater {
+    val unreadMessages = messages.filter { !it.wasRead }
+    if (unreadMessages.isNotEmpty()) {
+      val notMineMessages = unreadMessages.filter { it.authorId != me.id }
+      if (notMineMessages.isNotEmpty() || (dialogue.participants.size == 1)) {
         dialogueClient.markReadMessages(dialogue.id)
-//      }
+      }
     }
   }
 
@@ -307,7 +321,8 @@ class MainController {
     conferenceImage = SwingFXUtils.toFXImage(img, null)
   }
 
-  @FXML fun cmdSendClick(event: ActionEvent) {
+  @FXML
+  fun cmdSendClick(event: ActionEvent) {
     val dialogue = selectedDialogue ?: return
     val msg = Message(0, 0, dialogue.id, txtMessage.text, 0)
     dialogueClient.sendMessage(msg)
@@ -363,11 +378,11 @@ class MainController {
         val prompt = "Incoming call from ${asker.username}. Accept?"
         val agree = MessageBoxes.showYesNoAlert(prompt)
         val answer =
-        if (agree) {
-          BinaryMessage(BinaryMessageType.CALL_RESPONSE_ALLOW, asker.id)
-        } else {
-          BinaryMessage(BinaryMessageType.CALL_RESPONSE_DENY, asker.id)
-        }
+            if (agree) {
+              BinaryMessage(BinaryMessageType.CALL_RESPONSE_ALLOW, asker.id)
+            } else {
+              BinaryMessage(BinaryMessageType.CALL_RESPONSE_DENY, asker.id)
+            }
         wsClient.send(answer)
       }
       msg.type == BinaryMessageType.CALL_BEGIN -> {
