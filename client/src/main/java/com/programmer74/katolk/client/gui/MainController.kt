@@ -96,7 +96,7 @@ class MainController {
     wsClient.addBinary(Consumer { t ->
       WsBinaryMsgHandler(t)
     })
-    audio = Audio(5, wsClient)
+    audio = Audio(3, wsClient)
     me = userClient.me()
     uiSetupDialogListImages()
     uiUpdateUserInfo(tfMe, me)
