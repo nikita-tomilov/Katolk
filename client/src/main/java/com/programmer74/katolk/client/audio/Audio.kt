@@ -2,11 +2,9 @@ package com.programmer74.katolk.client.audio
 
 import com.programmer74.katolk.client.binary.BinaryMessage
 import com.programmer74.katolk.client.binary.BinaryMessageType
-import com.programmer74.katolk.client.feign.WsClient
+import com.programmer74.katolk.client.ws.WsClient
 import com.programmer74.katolk.client.gui.MessageBoxes
 import java.io.ByteArrayOutputStream
-import java.net.DatagramPacket
-import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer

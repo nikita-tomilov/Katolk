@@ -1,12 +1,10 @@
 package com.programmer74.katolk.service
 
-import com.programmer74.katolk.dao.DialogueEntity
-import com.programmer74.katolk.dao.DialogueParticipantEntity
-import com.programmer74.katolk.dao.MessageEntity
-import com.programmer74.katolk.dao.User
+import com.programmer74.katolk.dao.*
 import com.programmer74.katolk.dto.DialogueDto
 import com.programmer74.katolk.dto.MessageDto
-import com.programmer74.katolk.dto.UserDto
+import com.programmer74.katolk.dto.MessageRequestDto
+import com.programmer74.katolk.dto.UserInfoDto
 import com.programmer74.katolk.repository.DialogueParticipantRepository
 import com.programmer74.katolk.repository.DialogueRepository
 import com.programmer74.katolk.ws.WebsocketHandler
@@ -72,12 +70,12 @@ class DialogueService(
           it.name,
           dialogueParticipantRepository.findAllByDialogueID(it.safeId())!!
               .map { participant -> participant.userID }
-              .map { userId -> UserDto.from(userService.findUserById(userId)) }
+              .map { userId -> userInfoDtoFromUser(userService.findUserById(userId)) }
               .toList(),
           messagesService.latestMessageInDialogueAsJson(it),
           messagesService.getUnreadMessagesCount(it))
     }.sortedByDescending {
-      if (it.latestMessage != null) it.latestMessage.date else 0
+      if (it.latestMessage != null) it.latestMessage?.date else 0
     }
   }
 
@@ -104,7 +102,7 @@ class DialogueService(
     }
   }
 
-  fun sendMessage(user: User, message: MessageEntity): MessageEntity {
+  private fun sendMessage(user: User, message: MessageRequestDto): MessageEntity {
     val dialogueId = message.dialogueID
     val dialogue = getDialogueOrNull(user.safeId(), dialogueId)
       ?: throw NotFoundException("no dialogue or no access to $dialogueId")
@@ -113,6 +111,10 @@ class DialogueService(
     val participants = getDialogueParticipants(dialogueId)
     participants.forEach { websocketHandler.notifyUserAboutNewMessage(it) }
     return sentMessage
+  }
+
+  fun sendMessageAndReturnDto(user: User, message: MessageRequestDto): MessageDto {
+    return sendMessage(user, message).toDto(user.username)
   }
 
   fun getDialogueParticipants(dialogueId: Long): List<User> {

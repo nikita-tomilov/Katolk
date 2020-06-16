@@ -2,9 +2,9 @@ package com.programmer74.katolk.client.gui
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.programmer74.katolk.FeignRepository
 import com.programmer74.katolk.client.data.Preferences
-import com.programmer74.katolk.client.data.UserJson
-import com.programmer74.katolk.client.feign.FeignRepository
+import com.programmer74.katolk.dto.UserInfoDto
 import feign.FeignException
 import javafx.event.ActionEvent
 import javafx.fxml.FXML
@@ -48,8 +48,9 @@ class LoginController {
     val feignRepo = FeignRepository(url, username, password)
     val userClient = feignRepo.getUserClient()
 
-    val me: UserJson
+    val me: UserInfoDto
     try {
+      feignRepo.obtainToken()
       me = userClient.me()
     } catch (fex: FeignException) {
       MessageBoxes.showAlert("Error", fex.localizedMessage)

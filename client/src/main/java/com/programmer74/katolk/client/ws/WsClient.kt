@@ -1,4 +1,4 @@
-package com.programmer74.katolk.client.feign
+package com.programmer74.katolk.client.ws
 
 import com.programmer74.katolk.client.binary.BinaryMessage
 import com.programmer74.katolk.client.binary.BinaryMessageType

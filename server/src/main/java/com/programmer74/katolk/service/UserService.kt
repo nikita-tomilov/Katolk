@@ -1,7 +1,7 @@
 package com.programmer74.katolk.service
 
 import com.programmer74.katolk.dao.User
-import com.programmer74.katolk.dto.SmallUserDto
+import com.programmer74.katolk.dto.UserDto
 import com.programmer74.katolk.exception.NotFoundException
 import com.programmer74.katolk.repository.UserRepository
 import com.programmer74.katolk.util.SecurityContextUtils
@@ -40,9 +40,9 @@ class UserService(
     return ids.map { findUserById(it) }
   }
 
-  fun me(): SmallUserDto {
+  fun me(): UserDto {
     val user = SecurityContextUtils.getUserFromContext()
-    return SmallUserDto(user.username, user.authorities.map { it.authority })
+    return UserDto(user.username, user.authorities.map { it.authority })
   }
 
   fun meAsEntity(): User {

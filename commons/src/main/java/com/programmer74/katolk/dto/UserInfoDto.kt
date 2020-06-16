@@ -1,7 +1,7 @@
-package com.programmer74.katolk.client.data
+package com.programmer74.katolk.dto
 
-data class UserJson(
-  val id: Int = 0,
+data class UserInfoDto(
+  val id: Long = 0,
   val username: String = "",
   val online: Boolean = false,
   val name: String = "",
@@ -9,5 +9,6 @@ data class UserJson(
   val born: Long = 0,
   val gender: Char = '?',
   val city: String = "",
+  val roles: List<String>,
   val lastOnline: Long = 0
 )

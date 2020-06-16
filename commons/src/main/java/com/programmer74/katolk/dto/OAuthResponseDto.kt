@@ -1,6 +1,6 @@
-package com.programmer74.katolk.client.feign
+package com.programmer74.katolk.dto
 
-data class OAuth2Response(
+data class OAuthResponseDto(
   val access_token: String,
   val token_type: String,
   val refresh_token: String,

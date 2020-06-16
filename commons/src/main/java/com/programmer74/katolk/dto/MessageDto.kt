@@ -6,6 +6,6 @@ data class MessageDto(
   val authorId: Long = 0,
   val dialogueID: Long = 0,
   val body: String = "",
-  var date: Long = 0,
-  var wasRead: Boolean = false
+  val date: Long = 0,
+  val wasRead: Boolean = false
 )

@@ -1,43 +1,28 @@
 package com.programmer74.katolk.controllers
 
-import com.programmer74.katolk.dao.DialogueEntity
-import com.programmer74.katolk.dao.MessageEntity
+import com.programmer74.katolk.api.DialogueAPI
 import com.programmer74.katolk.dto.DialogueDto
 import com.programmer74.katolk.dto.MessageDto
+import com.programmer74.katolk.dto.MessageRequestDto
 import com.programmer74.katolk.service.DialogueService
-import com.programmer74.katolk.service.MessagesService
 import com.programmer74.katolk.service.UserService
-import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping(path = ["/api/dialog"])
 class DialogController(
   private val userService: UserService,
-  private val messagesService: MessagesService,
   private val dialogService: DialogueService
-) {
-
-  //  @Autowired
-  //  lateinit var websocketHandler: WebsocketHandler
-
-  @ResponseStatus(HttpStatus.FORBIDDEN)
-  inner class ForbiddenException : RuntimeException()
-
-  @GetMapping("/all")
-  fun dialogues(): List<DialogueEntity> {
-    val me = userService.meAsEntity()
-    return dialogService.getDialogs(me)
-  }
+) : DialogueAPI {
 
   @GetMapping("/list")
-  fun dialoguesAsList(): List<DialogueDto> {
+  override fun getDialogs(): List<DialogueDto> {
     val me = userService.meAsEntity()
     return dialogService.getDialogRepresentations(me)
   }
 
   @GetMapping("/messages/{dialogueId}")
-  fun messagesInDialogue(
+  override fun messagesInDialogue(
     @PathVariable("dialogueId") dialogueId: Long
   ): List<MessageDto> {
     val me = userService.meAsEntity()
@@ -45,7 +30,7 @@ class DialogController(
   }
 
   @GetMapping("/messages/{dialogueId}/markread")
-  fun markMessagesInDialogueAsRead(
+  override fun markMessagesInDialogueAsRead(
     @PathVariable("dialogueId") dialogueId: Long
   ): List<MessageDto> {
     val me = userService.meAsEntity()
@@ -54,10 +39,10 @@ class DialogController(
   }
 
   @PostMapping("/messages/send")
-  fun sendMessage(
-    @RequestBody msg: MessageEntity
-  ): MessageEntity {
+  override fun sendMessage(
+    @RequestBody msg: MessageRequestDto
+  ): MessageDto {
     val me = userService.meAsEntity()
-    return dialogService.sendMessage(me, msg)
+    return dialogService.sendMessageAndReturnDto(me, msg)
   }
 }

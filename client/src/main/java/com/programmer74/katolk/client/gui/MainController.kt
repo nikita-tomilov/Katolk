@@ -1,16 +1,17 @@
 package com.programmer74.katolk.client.gui
 
+import com.programmer74.katolk.FeignRepository
+import com.programmer74.katolk.api.DialogueAPI
+import com.programmer74.katolk.api.UserAPI
 import com.programmer74.katolk.client.audio.Audio
 import com.programmer74.katolk.client.binary.BinaryMessage
 import com.programmer74.katolk.client.binary.BinaryMessageType
-import com.programmer74.katolk.client.data.DialogueJson
-import com.programmer74.katolk.client.data.Message
-import com.programmer74.katolk.client.data.MessageJson
-import com.programmer74.katolk.client.data.UserJson
-import com.programmer74.katolk.client.feign.DialogueClient
-import com.programmer74.katolk.client.feign.FeignRepository
-import com.programmer74.katolk.client.feign.UserClient
-import com.programmer74.katolk.client.feign.WsClient
+import com.programmer74.katolk.client.data.getOpponent
+import com.programmer74.katolk.client.ws.WsClient
+import com.programmer74.katolk.dto.DialogueDto
+import com.programmer74.katolk.dto.MessageDto
+import com.programmer74.katolk.dto.MessageRequestDto
+import com.programmer74.katolk.dto.UserInfoDto
 import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.embed.swing.SwingFXUtils
@@ -51,7 +52,7 @@ class MainController {
   @FXML
   lateinit var cmdSend: Button
   @FXML
-  lateinit var lvDialogs: ListView<DialogueJson>
+  lateinit var lvDialogs: ListView<DialogueDto>
   @FXML
   lateinit var paneMain: BorderPane
   @FXML
@@ -69,15 +70,15 @@ class MainController {
   lateinit var lblTalkWith: Label
 
   lateinit var feignRepository: FeignRepository
-  lateinit var userClient: UserClient
-  lateinit var dialogueClient: DialogueClient
+  lateinit var userClient: UserAPI
+  lateinit var dialogueClient: DialogueAPI
   lateinit var wsClient: WsClient
   lateinit var audio: Audio
 
-  lateinit var me: UserJson
-  var messagesOpponent: UserJson? = null
-  var callOpponent: UserJson? = null
-  var selectedDialogue: DialogueJson? = null
+  lateinit var me: UserInfoDto
+  var messagesOpponent: UserInfoDto? = null
+  var callOpponent: UserInfoDto? = null
+  var selectedDialogue: DialogueDto? = null
   var callInProgress = false
   var callThread: Thread? = null
 
@@ -88,7 +89,11 @@ class MainController {
   fun performPostConstruct() {
     userClient = feignRepository.getUserClient()
     dialogueClient = feignRepository.getDialogueClient()
-    wsClient = feignRepository.getWsClient()
+    wsClient = WsClient(
+        feignRepository.username,
+        feignRepository.password,
+        "${feignRepository.url}/api/ws/websocket",
+        feignRepository.getToken())
     wsClient.open()
     wsClient.add(Consumer { t ->
       WsStringMsgHandler(t)
@@ -118,7 +123,7 @@ class MainController {
     lblDialogWith.prefWidthProperty().bind(paneAboveDialog.widthProperty())
   }
 
-  fun uiUpdateUserInfo(tf: TextFlow, user: UserJson) {
+  fun uiUpdateUserInfo(tf: TextFlow, user: UserInfoDto) {
     val login = Text(user.username + "\n")
     login.font = Font.font("Helvetica", 24.0)
 
@@ -147,7 +152,7 @@ class MainController {
     tf.children.addAll(login, name, ageCity, lastOnline)
   }
 
-  fun uiUpdateUserInfo(tf: TextFlow, dialogue: DialogueJson) {
+  fun uiUpdateUserInfo(tf: TextFlow, dialogue: DialogueDto) {
 
     tf.children.clear()
 
@@ -164,12 +169,12 @@ class MainController {
   fun uiUpdateDialogueList() {
     val dialogs = dialogueClient.getDialogs()
 
-    val dialogsAtLw = FXCollections.observableArrayList<DialogueJson>()
+    val dialogsAtLw = FXCollections.observableArrayList<DialogueDto>()
     dialogs.forEach { dialogsAtLw.add(it) }
 
     lvDialogs.setCellFactory { param ->
-      object : ListCell<DialogueJson>() {
-        public override fun updateItem(dialogue: DialogueJson?, empty: Boolean) {
+      object : ListCell<DialogueDto>() {
+        public override fun updateItem(dialogue: DialogueDto?, empty: Boolean) {
           if (dialogue == null) {
             return
           }
@@ -195,7 +200,8 @@ class MainController {
               dialogueIcon.image = conferenceImage
             }
             if (dialogue.latestMessage != null) {
-              lastMessage = extractMessagePreview(dialogue.latestMessage)
+              lastMessage =
+                  extractMessagePreview(dialogue.latestMessage ?: error("should-never-happen"))
             }
 
             val dialogueNameV = Text(" $dialogueName\n")
@@ -236,7 +242,7 @@ class MainController {
     mnuBeginCall.isDisable = !opponent.online
   }
 
-  private fun extractMessagePreview(latestMessage: MessageJson): String {
+  private fun extractMessagePreview(latestMessage: MessageDto): String {
     var latestMessagePreview = latestMessage.body.trim()
     val maxlen = 10
     if (latestMessagePreview.length > maxlen) {
@@ -276,7 +282,7 @@ class MainController {
 
     messagesOpponent = dialogue.getOpponent(me)
 
-    val messages = dialogueClient.getMessages(dialogue.id)
+    val messages = dialogueClient.messagesInDialogue(dialogue.id)
 
     val html = buildHTML(messages, me)
 
@@ -286,7 +292,7 @@ class MainController {
         lblDialogWith.text = "Dialog with ${messagesOpponent!!.username}"
       } else {
         uiUpdateUserInfo(tfUser, dialogue)
-        lblDialogWith.text = "${dialogue.name}"
+        lblDialogWith.text = dialogue.name
       }
       wvMessageHistory.engine.loadContent(html)
 
@@ -299,7 +305,7 @@ class MainController {
     if (unreadMessages.isNotEmpty()) {
       val notMineMessages = unreadMessages.filter { it.authorId != me.id }
       if (notMineMessages.isNotEmpty() || (dialogue.participants.size == 1)) {
-        dialogueClient.markReadMessages(dialogue.id)
+        dialogueClient.markMessagesInDialogueAsRead(dialogue.id)
       }
     }
   }
@@ -324,7 +330,7 @@ class MainController {
   @FXML
   fun cmdSendClick(event: ActionEvent) {
     val dialogue = selectedDialogue ?: return
-    val msg = Message(0, 0, dialogue.id, txtMessage.text, 0)
+    val msg = MessageRequestDto(dialogue.id, txtMessage.text)
     dialogueClient.sendMessage(msg)
     uiUpdateDialogueList()
     uiUpdateMessagesView()
@@ -334,14 +340,14 @@ class MainController {
   @FXML
   fun mnuBeginCallClick(event: ActionEvent) {
     val opponent = this.messagesOpponent ?: return
-    val callMessage = BinaryMessage(BinaryMessageType.CALL_REQUEST, opponent.id)
+    val callMessage = BinaryMessage(BinaryMessageType.CALL_REQUEST, opponent.id.toInt())
     wsClient.client.send(callMessage.toBytes())
   }
 
   @FXML
   fun mnuEndCallClick(event: ActionEvent) {
     val opponent = this.callOpponent ?: return
-    val callMessage = BinaryMessage(BinaryMessageType.CALL_END, opponent.id)
+    val callMessage = BinaryMessage(BinaryMessageType.CALL_END, opponent.id.toInt())
     wsClient.client.send(callMessage.toBytes())
   }
 
@@ -374,19 +380,19 @@ class MainController {
   fun WsBinaryMsgHandler(msg: BinaryMessage) {
     when {
       msg.type == BinaryMessageType.CALL_REQUEST -> {
-        val asker = userClient.getUser(msg.intPayload())
+        val asker = userClient.getUser(msg.intPayload().toLong())
         val prompt = "Incoming call from ${asker.username}. Accept?"
         val agree = MessageBoxes.showYesNoAlert(prompt)
         val answer =
             if (agree) {
-              BinaryMessage(BinaryMessageType.CALL_RESPONSE_ALLOW, asker.id)
+              BinaryMessage(BinaryMessageType.CALL_RESPONSE_ALLOW, asker.id.toInt())
             } else {
-              BinaryMessage(BinaryMessageType.CALL_RESPONSE_DENY, asker.id)
+              BinaryMessage(BinaryMessageType.CALL_RESPONSE_DENY, asker.id.toInt())
             }
         wsClient.send(answer)
       }
       msg.type == BinaryMessageType.CALL_BEGIN -> {
-        handleCallBegin(userClient.getUser(msg.intPayload()))
+        handleCallBegin(userClient.getUser(msg.intPayload().toLong()))
       }
       msg.type == BinaryMessageType.CALL_END -> {
         handleCallEnd("Call ended")
@@ -400,7 +406,7 @@ class MainController {
     }
   }
 
-  fun handleCallBegin(user: UserJson) {
+  fun handleCallBegin(user: UserInfoDto) {
     callInProgress = true
     uiUpdateCallMenus()
     System.err.println("BEGIN CALL")

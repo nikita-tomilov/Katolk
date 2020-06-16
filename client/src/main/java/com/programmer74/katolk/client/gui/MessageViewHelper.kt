@@ -1,9 +1,9 @@
 package com.programmer74.katolk.client.gui
 
-import com.programmer74.katolk.client.data.MessageJson
-import com.programmer74.katolk.client.data.UserJson
+import com.programmer74.katolk.dto.MessageDto
+import com.programmer74.katolk.dto.UserInfoDto
 
-fun buildHTML(messages: List<MessageJson>, me: UserJson): String {
+fun buildHTML(messages: List<MessageDto>, me: UserInfoDto): String {
   var from: String
   var msg: String
 
@@ -17,32 +17,33 @@ fun buildHTML(messages: List<MessageJson>, me: UserJson): String {
   historySb.append("       }")
   historySb.append("   </script>")
   historySb.append("<style>")
-  historySb.append("body {\n" +
-      "    background-color: white;\n" +
-      "    color: white;\n" +
-      "    font-family: Arial, Helvetica, sans-serif;\n" +
-      "    font-size: 11pt;\n" +
-      "}\n" +
-      "div {\n" +
-      "\tmax-width: 70%;\n" +
-      "    clear:both;\n" +
-      "    padding: 10px; \n" +
-      "}\n" +
-      ".my {\n" +
-      "\tbackground-color: #4B966E;\n" +
-      "    text-align: left;\n" +
-      "    float:right;\n" +
-      "    border-radius: 25px 25px 5px 25px;\n" +
-      "}\n" +
-      ".his {\n" +
-      "\tbackground-color: #477187;\n" +
-      "    text-align: left;\n" +
-      "    float:left;\n" +
-      "    border-radius: 25px 25px 25px 5px;\n" +
-      "}" +
-      ".unread {\n" +
-      "\tbackground-color: #0F5A32;\n" +
-      "}")
+  historySb.append(
+      "body {\n" +
+          "    background-color: white;\n" +
+          "    color: white;\n" +
+          "    font-family: Arial, Helvetica, sans-serif;\n" +
+          "    font-size: 11pt;\n" +
+          "}\n" +
+          "div {\n" +
+          "\tmax-width: 70%;\n" +
+          "    clear:both;\n" +
+          "    padding: 10px; \n" +
+          "}\n" +
+          ".my {\n" +
+          "\tbackground-color: #4B966E;\n" +
+          "    text-align: left;\n" +
+          "    float:right;\n" +
+          "    border-radius: 25px 25px 5px 25px;\n" +
+          "}\n" +
+          ".his {\n" +
+          "\tbackground-color: #477187;\n" +
+          "    text-align: left;\n" +
+          "    float:left;\n" +
+          "    border-radius: 25px 25px 25px 5px;\n" +
+          "}" +
+          ".unread {\n" +
+          "\tbackground-color: #0F5A32;\n" +
+          "}")
   historySb.append("</style>")
   historySb.append("</head>")
   historySb.append("<body onload='toBottom()'>")
@@ -60,12 +61,13 @@ fun buildHTML(messages: List<MessageJson>, me: UserJson): String {
     }
     msg = message.body
 
-    historySb.append("<div class=\"" + (
-          if (message.authorId == me.id) {
-            "my"
-          } else {
-            "his"
-          }) + "\">")
+    historySb.append(
+        "<div class=\"" + (
+            if (message.authorId == me.id) {
+              "my"
+            } else {
+              "his"
+            }) + "\">")
 
     msg = msg.replace("[<]".toRegex(), "&lt;")
     msg = msg.replace("[>]".toRegex(), "&gt;")
