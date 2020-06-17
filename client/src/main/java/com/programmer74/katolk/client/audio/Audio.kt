@@ -2,11 +2,9 @@ package com.programmer74.katolk.client.audio
 
 import com.programmer74.katolk.client.binary.BinaryMessage
 import com.programmer74.katolk.client.binary.BinaryMessageType
-import com.programmer74.katolk.client.feign.WsClient
+import com.programmer74.katolk.client.ws.WsClient
 import com.programmer74.katolk.client.gui.MessageBoxes
 import java.io.ByteArrayOutputStream
-import java.net.DatagramPacket
-import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
@@ -43,8 +41,8 @@ class Audio(qualitySetup: Int, val wsClient: WsClient) {
   var myID: Long? = 0L
 
 
-  private var myQualitySetupForSpeakers = 5
-  private var myQualitySetupForMic = 5
+  private var myQualitySetupForSpeakers = 3
+  private var myQualitySetupForMic = 3
 
   private var newQualitySetupForSpeakers = -1
   private val newQualitySetupForMic = -1
@@ -57,14 +55,14 @@ class Audio(qualitySetup: Int, val wsClient: WsClient) {
         1 - 8kHz, 16 bit
         2 - 16kHz, 16 bit
         3 - 16kHz, 24 bit
-        4 - 44.1kHz, 16 bit
-        5 - 44.1kHz, 24 bit
+        4 - 44.1kHz, 16 bit - DROPPED
+        5 - 44.1kHz, 24 bit - DROPPED
     */
   private fun getRateByQuality(quality: Int): Float {
     when (quality) {
       0, 1 -> return 8000.0f
       2, 3 -> return 16000.0f
-      4, 5 -> return 44100.0f
+      //4, 5 -> return 44100.0f
     }
     return 16000.0f
   }
@@ -72,8 +70,8 @@ class Audio(qualitySetup: Int, val wsClient: WsClient) {
   private fun getSSizeByQuality(quality: Int): Int {
     when (quality) {
       0 -> return 8
-      1, 2, 4 -> return 16
-      3, 5 -> return 24
+      1, 2 /*, 4*/ -> return 16
+      3 /*, 5*/ -> return 24
     }
     return 16
   }
