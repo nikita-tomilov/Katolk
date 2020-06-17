@@ -1,6 +1,6 @@
-package com.programmer74.katolk.client.binary
+package com.programmer74.katolk.ws
 
-enum class BinaryMessageType {
+enum class KatolkBinaryMessageType {
   CALL_REQUEST,
   CALL_ERROR,
   CALL_RESPONSE_ALLOW,
@@ -15,12 +15,12 @@ enum class BinaryMessageType {
   PACKET_AUDIO
 }
 
-data class BinaryMessage(
-  var type: BinaryMessageType,
+data class KatolkBinaryMessage(
+  var type: KatolkBinaryMessageType,
   val payload: ByteArray
 ) {
 
-  constructor(type: BinaryMessageType, payload: Int):
+  constructor(type: KatolkBinaryMessageType, payload: Int):
       this(
           type,
           byteArrayOf(
@@ -43,14 +43,32 @@ data class BinaryMessage(
         (payload[3].toInt() and 0xFF)
   }
 
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (javaClass != other?.javaClass) return false
+
+    other as KatolkBinaryMessage
+
+    if (type != other.type) return false
+    if (!payload.contentEquals(other.payload)) return false
+
+    return true
+  }
+
+  override fun hashCode(): Int {
+    var result = type.hashCode()
+    result = 31 * result + payload.contentHashCode()
+    return result
+  }
+
   companion object {
 
     val additionalLen = 1
 
-    fun fromBytes(bytes: ByteArray): BinaryMessage {
+    fun fromBytes(bytes: ByteArray): KatolkBinaryMessage {
       val payload = bytes.copyOfRange(additionalLen, bytes.size - additionalLen + 1)
-      val type = BinaryMessageType.values()[bytes[0].toInt()]
-      return BinaryMessage(type, payload)
+      val type = KatolkBinaryMessageType.values()[bytes[0].toInt()]
+      return KatolkBinaryMessage(type, payload)
     }
   }
 }

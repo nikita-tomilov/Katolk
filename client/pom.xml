@@ -20,12 +20,6 @@
             <artifactId>katolk-commons</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
-        <!--WEBSOCKET-->
-        <dependency>
-            <groupId>org.java-websocket</groupId>
-            <artifactId>Java-WebSocket</artifactId>
-            <version>1.5.0</version>
-        </dependency>
     </dependencies>
 
     <build>

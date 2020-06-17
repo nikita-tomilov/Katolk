@@ -1,8 +1,8 @@
 package com.programmer74.katolk.client.audio
 
-import com.programmer74.katolk.client.binary.BinaryMessage
-import com.programmer74.katolk.client.binary.BinaryMessageType
-import com.programmer74.katolk.client.ws.WsClient
+import com.programmer74.katolk.ws.KatolkBinaryMessage
+import com.programmer74.katolk.ws.KatolkBinaryMessageType
+import com.programmer74.katolk.ws.WsClient
 import com.programmer74.katolk.client.gui.MessageBoxes
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.LinkedBlockingQueue
@@ -47,7 +47,7 @@ class Audio(qualitySetup: Int, val wsClient: WsClient) {
   private var newQualitySetupForSpeakers = -1
   private val newQualitySetupForMic = -1
 
-  private val incomingAudioPackets = LinkedBlockingQueue<BinaryMessage?>()
+  private val incomingAudioPackets = LinkedBlockingQueue<KatolkBinaryMessage?>()
 
   /*
         Quality setups:
@@ -156,7 +156,7 @@ class Audio(qualitySetup: Int, val wsClient: WsClient) {
     updateMicrophoneParamsByQuality(myQualitySetupForMic)
 
     this.wsClient.binaryConsumers.add(Consumer {
-      if (it.type == BinaryMessageType.PACKET_AUDIO) {
+      if (it.type == KatolkBinaryMessageType.PACKET_AUDIO) {
         incomingAudioPackets.put(it)
       }
     })
@@ -210,7 +210,9 @@ class Audio(qualitySetup: Int, val wsClient: WsClient) {
         numbytesUpload = microphone!!.read(data, 0, micDataSize)
 //        bytesUpload += numbytesUpload
 
-        val msg = BinaryMessage(BinaryMessageType.PACKET_AUDIO, data)
+        val msg = KatolkBinaryMessage(
+            KatolkBinaryMessageType.PACKET_AUDIO,
+            data)
         wsClient.send(msg)
         //System.out.println("Talking!");
       }

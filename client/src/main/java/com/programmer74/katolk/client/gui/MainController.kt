@@ -1,10 +1,10 @@
 package com.programmer74.katolk.client.gui
 
 import com.programmer74.katolk.FeignRepository
-import com.programmer74.katolk.client.KatolkModel
+import com.programmer74.katolk.KatolkModel
 import com.programmer74.katolk.client.audio.Audio
-import com.programmer74.katolk.client.binary.BinaryMessage
-import com.programmer74.katolk.client.binary.BinaryMessageType
+import com.programmer74.katolk.ws.KatolkBinaryMessage
+import com.programmer74.katolk.ws.KatolkBinaryMessageType
 import com.programmer74.katolk.client.data.getOpponent
 import com.programmer74.katolk.dto.DialogueDto
 import com.programmer74.katolk.dto.MessageDto
@@ -84,28 +84,7 @@ class MainController {
   lateinit var conferenceImage: javafx.scene.image.Image
 
   fun performPostConstruct() {
-    katolkModel = KatolkModel(feignRepository)
-    katolkModel.setup(Consumer { info ->
-      me = info
-      uiUpdateUserInfo(tfMe, me)
-    })
-    katolkModel.getWsClient().addBinary(Consumer { t ->
-      WsBinaryMsgHandler(t)
-    })
-    katolkModel.messagesConsumer = BiConsumer { t, u ->
-      Platform.runLater { uiUpdateMessagesView(t, u) }
-    }
-    katolkModel.dialogListConsumer = Consumer {
-      Platform.runLater { uiUpdateDialogueList(it) }
-    }
-    katolkModel.subscribeOnNewMessage(Runnable {
-      katolkModel.scheduleDialogueListUpdate()
-      val copy = selectedDialogue
-      if (copy != null) {
-        katolkModel.scheduleRetrievingMessages(copy.id)
-      }
-      uiUpdateCallMenus()
-    })
+    setupKatolkModel()
     audio = Audio(3, katolkModel.getWsClient())
 
     uiSetupDialogListImages()
@@ -127,6 +106,50 @@ class MainController {
     lblTalkWith.isManaged = false
     lblTalkWith.prefWidthProperty().bind(paneAboveDialog.widthProperty())
     lblDialogWith.prefWidthProperty().bind(paneAboveDialog.widthProperty())
+  }
+
+  private fun setupKatolkModel() {
+    katolkModel = KatolkModel(feignRepository)
+
+    katolkModel.setup(Consumer { info ->
+      me = info
+      uiUpdateUserInfo(tfMe, me)
+    })
+
+    katolkModel.getWsClient().addBinary(Consumer { t ->
+      WsBinaryMsgHandler(t)
+    })
+
+    katolkModel.onMessagesRetrievedCallback = BiConsumer { t, u ->
+      Platform.runLater {
+        when {
+          t.participants.size == 2 -> messagesOpponent = t.getOpponent(me)
+          t.participants.size == 1 -> messagesOpponent = me
+          else -> messagesOpponent = null
+        }
+        uiUpdateMessagesView(t, u)
+        uiUpdateCallMenus()
+      }
+    }
+
+    katolkModel.onDialogListRetrievedCallback = Consumer {
+      Platform.runLater {
+        uiUpdateDialogueList(it)
+        uiUpdateCallMenus()
+      }
+    }
+
+    katolkModel.onNewMessageCallback = Consumer {
+      katolkModel.scheduleDialogueListUpdate()
+      val copy = selectedDialogue
+      if ((copy != null) && (copy.id == it)) {
+        katolkModel.scheduleRetrievingMessages(copy.id)
+      }
+    }
+
+    katolkModel.onUserStateChangedCallback = Consumer {
+      katolkModel.scheduleDialogueListUpdate()
+    }
   }
 
   fun uiUpdateUserInfo(tf: TextFlow, user: UserInfoDto) {
@@ -272,7 +295,6 @@ class MainController {
     if (copy != null) {
       katolkModel.scheduleRetrievingMessages(copy.id)
     }
-    uiUpdateCallMenus()
   }
 
   private fun uiUpdateMessagesView(dialogue: DialogueDto, messages: List<MessageDto>) {
@@ -331,14 +353,18 @@ class MainController {
   @FXML
   fun mnuBeginCallClick(event: ActionEvent) {
     val opponent = this.messagesOpponent ?: return
-    val callMessage = BinaryMessage(BinaryMessageType.CALL_REQUEST, opponent.id.toInt())
+    val callMessage = KatolkBinaryMessage(
+        KatolkBinaryMessageType.CALL_REQUEST,
+        opponent.id.toInt())
     katolkModel.getWsClient().client.send(callMessage.toBytes())
   }
 
   @FXML
   fun mnuEndCallClick(event: ActionEvent) {
     val opponent = this.callOpponent ?: return
-    val callMessage = BinaryMessage(BinaryMessageType.CALL_END, opponent.id.toInt())
+    val callMessage = KatolkBinaryMessage(
+        KatolkBinaryMessageType.CALL_END,
+        opponent.id.toInt())
     katolkModel.getWsClient().client.send(callMessage.toBytes())
   }
 
@@ -353,35 +379,39 @@ class MainController {
 
   }
 
-  fun WsBinaryMsgHandler(msg: BinaryMessage) {
+  fun WsBinaryMsgHandler(msg: KatolkBinaryMessage) {
     when {
-      msg.type == BinaryMessageType.CALL_REQUEST -> {
+      msg.type == KatolkBinaryMessageType.CALL_REQUEST -> {
         val askerUserID = msg.intPayload().toLong()
         katolkModel.getUserInfo(askerUserID, Consumer { asker ->
           val prompt = "Incoming call from ${asker.username}. Accept?"
           val agree = MessageBoxes.showYesNoAlert(prompt)
           val answer =
               if (agree) {
-                BinaryMessage(BinaryMessageType.CALL_RESPONSE_ALLOW, asker.id.toInt())
+                KatolkBinaryMessage(
+                    KatolkBinaryMessageType.CALL_RESPONSE_ALLOW,
+                    asker.id.toInt())
               } else {
-                BinaryMessage(BinaryMessageType.CALL_RESPONSE_DENY, asker.id.toInt())
+                KatolkBinaryMessage(
+                    KatolkBinaryMessageType.CALL_RESPONSE_DENY,
+                    asker.id.toInt())
               }
           katolkModel.getWsClient().send(answer)
         })
       }
-      msg.type == BinaryMessageType.CALL_BEGIN -> {
+      msg.type == KatolkBinaryMessageType.CALL_BEGIN -> {
         val askerUserID = msg.intPayload().toLong()
         katolkModel.getUserInfo(askerUserID, Consumer { asker ->
           handleCallBegin(asker)
         })
       }
-      msg.type == BinaryMessageType.CALL_END -> {
+      msg.type == KatolkBinaryMessageType.CALL_END -> {
         handleCallEnd("Call ended")
       }
-      msg.type == BinaryMessageType.CALL_ERROR -> {
+      msg.type == KatolkBinaryMessageType.CALL_ERROR -> {
         MessageBoxes.showAlert("Error calling", "Error")
       }
-      msg.type == BinaryMessageType.CALL_END_ABNORMAL -> {
+      msg.type == KatolkBinaryMessageType.CALL_END_ABNORMAL -> {
         handleCallEnd("Abnormal call ending. Probably opponent disconnected")
       }
     }

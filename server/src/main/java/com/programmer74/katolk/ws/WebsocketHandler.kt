@@ -1,6 +1,9 @@
 package com.programmer74.katolk.ws
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.programmer74.katolk.dao.User
+import com.programmer74.katolk.exception.BadRequestException
 import com.programmer74.katolk.exception.NotFoundException
 import com.programmer74.katolk.service.DialogueService
 import com.programmer74.katolk.service.OnlineUserService
@@ -22,25 +25,29 @@ class WebsocketHandler(
 
   val sessions = CopyOnWriteArrayList<WebSocketSession>()
 
-  val notifyQueue = LinkedBlockingQueue<User>()
+  val notifyQueue = LinkedBlockingQueue<WebsocketNotification>()
+
+  private val mapper = ObjectMapper().registerKotlinModule()
 
   @Throws(InterruptedException::class, IOException::class)
   public override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
     if (message.payload.startsWith("AUTH")) {
-      val username = message.payload.split(" ")[1]
-      val password = message.payload.split(" ")[2]
+      val username = session.principal?.name ?: throw BadRequestException("principle is empty")
       val user =
           onlineUserService.getUser(username) ?: throw NotFoundException("no user $username found")
-      if (onlineUserService.checkPasswordMatches(user, password)) {
-        onlineUserService.addOnlineUser(user, session)
-        notifyAboutUserStateChange(user)
-        session.sendMessage(TextMessage("AUTH_OK"))
-      }
+      onlineUserService.addOnlineUser(user, session)
+      notifyAboutUserStateChange(user)
+      session.sendMessage(TextMessage("AUTH_OK"))
     }
   }
 
-  fun notifyUserAboutNewMessage(userToBeNotified: User) {
-    notifyQueue.add(userToBeNotified)
+  fun notifyUserAboutNewMessage(dialogueId: Long, userToBeNotified: User) {
+    notifyQueue.add(
+        WebsocketNotification(
+            userToBeNotified,
+            WebsocketNotificationPayload(
+                NotificationType.NEW_MESSAGE,
+                mapOf("dialogueID" to dialogueId))))
   }
 
   fun notifyAboutUserStateChange(userHavingStateChanged: User) {
@@ -51,7 +58,12 @@ class WebsocketHandler(
         .toSet()
     participants.forEach {
       logger.warn { "Notifying userHavingStateChanged $it about state change of user $userHavingStateChanged" }
-      sendUpdate(it)
+      notifyQueue.add(
+          WebsocketNotification(
+              it,
+              WebsocketNotificationPayload(
+                  NotificationType.USER_STATE_CHANGED,
+                  mapOf("userID" to userHavingStateChanged.safeId()))))
     }
   }
 
@@ -87,8 +99,8 @@ class WebsocketHandler(
     val t = Thread {
       while (true) {
         try {
-          val user = notifyQueue.poll(5, TimeUnit.SECONDS) ?: continue
-          sendUpdate(user)
+          val notification = notifyQueue.poll(5, TimeUnit.SECONDS) ?: continue
+          sendUpdate(notification)
         } catch (e: Exception) {
           e.printStackTrace()
         }
@@ -97,12 +109,12 @@ class WebsocketHandler(
     t.start()
   }
 
-  fun sendUpdate(user: User) {
+  fun sendUpdate(notification: WebsocketNotification) {
     onlineUserService.getOnlineUsers()
-        .filterValues { it.id == user.id }
+        .filterValues { it.id == notification.user.id }
         .forEach { (s, u) ->
-          s.secureSendMessage(TextMessage("UPDATE"))
-          logger.warn { "Notified ${u.username} about dialogue update" }
+          s.secureSendMessage(TextMessage(mapper.writeValueAsString(notification.payload)))
+          logger.warn { "Notification $notification sent" }
         }
   }
 

@@ -98,7 +98,7 @@ class DialogueService(
     if (unreadMessages.isNotEmpty()) {
       messagesService.markMessagesInDialogueAsRead(unreadMessages)
       val participants = getDialogueParticipants(dialogueId)
-      participants.forEach { websocketHandler.notifyUserAboutNewMessage(it) }
+      participants.forEach { websocketHandler.notifyUserAboutNewMessage(dialogueId, it) }
     }
   }
 
@@ -109,7 +109,7 @@ class DialogueService(
 
     val sentMessage = messagesService.sendMessage(user, dialogue, message.body)
     val participants = getDialogueParticipants(dialogueId)
-    participants.forEach { websocketHandler.notifyUserAboutNewMessage(it) }
+    participants.forEach { websocketHandler.notifyUserAboutNewMessage(dialogueId, it) }
     return sentMessage
   }
 
