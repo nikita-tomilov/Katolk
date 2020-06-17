@@ -1,13 +1,11 @@
 package com.programmer74.katolk.client.gui
 
 import com.programmer74.katolk.FeignRepository
-import com.programmer74.katolk.api.DialogueAPI
-import com.programmer74.katolk.api.UserAPI
+import com.programmer74.katolk.client.KatolkModel
 import com.programmer74.katolk.client.audio.Audio
 import com.programmer74.katolk.client.binary.BinaryMessage
 import com.programmer74.katolk.client.binary.BinaryMessageType
 import com.programmer74.katolk.client.data.getOpponent
-import com.programmer74.katolk.client.ws.WsClient
 import com.programmer74.katolk.dto.DialogueDto
 import com.programmer74.katolk.dto.MessageDto
 import com.programmer74.katolk.dto.MessageRequestDto
@@ -35,6 +33,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Period
 import java.time.ZoneOffset
+import java.util.function.BiConsumer
 import java.util.function.Consumer
 
 class MainController {
@@ -70,9 +69,7 @@ class MainController {
   lateinit var lblTalkWith: Label
 
   lateinit var feignRepository: FeignRepository
-  lateinit var userClient: UserAPI
-  lateinit var dialogueClient: DialogueAPI
-  lateinit var wsClient: WsClient
+  lateinit var katolkModel: KatolkModel
   lateinit var audio: Audio
 
   lateinit var me: UserInfoDto
@@ -87,25 +84,34 @@ class MainController {
   lateinit var conferenceImage: javafx.scene.image.Image
 
   fun performPostConstruct() {
-    userClient = feignRepository.getUserClient()
-    dialogueClient = feignRepository.getDialogueClient()
-    wsClient = WsClient(
-        feignRepository.username,
-        feignRepository.password,
-        "${feignRepository.url}/api/ws/websocket",
-        feignRepository.getToken())
-    wsClient.open()
-    wsClient.add(Consumer { t ->
-      WsStringMsgHandler(t)
+    katolkModel = KatolkModel(feignRepository)
+    katolkModel.setup(Consumer { info ->
+      me = info
+      uiUpdateUserInfo(tfMe, me)
     })
-    wsClient.addBinary(Consumer { t ->
+    katolkModel.getWsClient().addBinary(Consumer { t ->
       WsBinaryMsgHandler(t)
     })
-    audio = Audio(3, wsClient)
-    me = userClient.me()
+    katolkModel.messagesConsumer = BiConsumer { t, u ->
+      Platform.runLater { uiUpdateMessagesView(t, u) }
+    }
+    katolkModel.dialogListConsumer = Consumer {
+      Platform.runLater { uiUpdateDialogueList(it) }
+    }
+    katolkModel.subscribeOnNewMessage(Runnable {
+      katolkModel.scheduleDialogueListUpdate()
+      val copy = selectedDialogue
+      if (copy != null) {
+        katolkModel.scheduleRetrievingMessages(copy.id)
+      }
+      uiUpdateCallMenus()
+    })
+    audio = Audio(3, katolkModel.getWsClient())
+
     uiSetupDialogListImages()
-    uiUpdateUserInfo(tfMe, me)
-    uiUpdateDialogueList()
+
+    katolkModel.scheduleDialogueListUpdate()
+
     uiUpdateCallMenus()
     txtMessage.setOnKeyPressed {
       if ((it.code == KeyCode.ENTER) && !(it.isShiftDown) && !(it.isControlDown)) {
@@ -166,9 +172,7 @@ class MainController {
     tf.children.addAll(logins)
   }
 
-  fun uiUpdateDialogueList() {
-    val dialogs = dialogueClient.getDialogs()
-
+  private fun uiUpdateDialogueList(dialogs: List<DialogueDto>) {
     val dialogsAtLw = FXCollections.observableArrayList<DialogueDto>()
     dialogs.forEach { dialogsAtLw.add(it) }
 
@@ -264,30 +268,19 @@ class MainController {
 
   private fun lvDialogsDialogClicked() {
     selectedDialogue = lvDialogs.selectionModel.selectedItem
-    uiUpdateMessagesView()
+    val copy = selectedDialogue
+    if (copy != null) {
+      katolkModel.scheduleRetrievingMessages(copy.id)
+    }
     uiUpdateCallMenus()
   }
 
-  private fun uiUpdateMessagesView() {
-    val dialogue = selectedDialogue
-
-    if (dialogue == null) {
-      wvMessageHistory.engine.loadContent("<html></html>")
-      messagesOpponent = null
-      lblDialogWith.isVisible = false
-      paneAboveDialog.isVisible = lblDialogWith.isVisible || lblTalkWith.isVisible
-      paneAboveDialog.isManaged = paneAboveDialog.isVisible
-      return
-    }
-
-    messagesOpponent = dialogue.getOpponent(me)
-
-    val messages = dialogueClient.messagesInDialogue(dialogue.id)
-
+  private fun uiUpdateMessagesView(dialogue: DialogueDto, messages: List<MessageDto>) {
     val html = buildHTML(messages, me)
 
     Platform.runLater {
       if (dialogue.participants.size == 2) {
+        messagesOpponent = dialogue.getOpponent(me)
         uiUpdateUserInfo(tfUser, messagesOpponent!!)
         lblDialogWith.text = "Dialog with ${messagesOpponent!!.username}"
       } else {
@@ -305,7 +298,7 @@ class MainController {
     if (unreadMessages.isNotEmpty()) {
       val notMineMessages = unreadMessages.filter { it.authorId != me.id }
       if (notMineMessages.isNotEmpty() || (dialogue.participants.size == 1)) {
-        dialogueClient.markMessagesInDialogueAsRead(dialogue.id)
+        katolkModel.markMessagesAsRead(dialogue.id)
       }
     }
   }
@@ -331,9 +324,7 @@ class MainController {
   fun cmdSendClick(event: ActionEvent) {
     val dialogue = selectedDialogue ?: return
     val msg = MessageRequestDto(dialogue.id, txtMessage.text)
-    dialogueClient.sendMessage(msg)
-    uiUpdateDialogueList()
-    uiUpdateMessagesView()
+    katolkModel.sendMessage(msg)
     txtMessage.text = ""
   }
 
@@ -341,14 +332,14 @@ class MainController {
   fun mnuBeginCallClick(event: ActionEvent) {
     val opponent = this.messagesOpponent ?: return
     val callMessage = BinaryMessage(BinaryMessageType.CALL_REQUEST, opponent.id.toInt())
-    wsClient.client.send(callMessage.toBytes())
+    katolkModel.getWsClient().client.send(callMessage.toBytes())
   }
 
   @FXML
   fun mnuEndCallClick(event: ActionEvent) {
     val opponent = this.callOpponent ?: return
     val callMessage = BinaryMessage(BinaryMessageType.CALL_END, opponent.id.toInt())
-    wsClient.client.send(callMessage.toBytes())
+    katolkModel.getWsClient().client.send(callMessage.toBytes())
   }
 
   @FXML
@@ -362,37 +353,27 @@ class MainController {
 
   }
 
-  fun WsStringMsgHandler(msg: String) {
-    if (msg == "UPDATE") {
-      Platform.runLater {
-        uiUpdateDialogueList()
-        uiUpdateMessagesView()
-        uiUpdateCallMenus()
-      }
-    } else if (msg == "AUTH_OK") {
-      Platform.runLater {
-        me = userClient.me()
-        uiUpdateUserInfo(tfMe, me)
-      }
-    }
-  }
-
   fun WsBinaryMsgHandler(msg: BinaryMessage) {
     when {
       msg.type == BinaryMessageType.CALL_REQUEST -> {
-        val asker = userClient.getUser(msg.intPayload().toLong())
-        val prompt = "Incoming call from ${asker.username}. Accept?"
-        val agree = MessageBoxes.showYesNoAlert(prompt)
-        val answer =
-            if (agree) {
-              BinaryMessage(BinaryMessageType.CALL_RESPONSE_ALLOW, asker.id.toInt())
-            } else {
-              BinaryMessage(BinaryMessageType.CALL_RESPONSE_DENY, asker.id.toInt())
-            }
-        wsClient.send(answer)
+        val askerUserID = msg.intPayload().toLong()
+        katolkModel.getUserInfo(askerUserID, Consumer { asker ->
+          val prompt = "Incoming call from ${asker.username}. Accept?"
+          val agree = MessageBoxes.showYesNoAlert(prompt)
+          val answer =
+              if (agree) {
+                BinaryMessage(BinaryMessageType.CALL_RESPONSE_ALLOW, asker.id.toInt())
+              } else {
+                BinaryMessage(BinaryMessageType.CALL_RESPONSE_DENY, asker.id.toInt())
+              }
+          katolkModel.getWsClient().send(answer)
+        })
       }
       msg.type == BinaryMessageType.CALL_BEGIN -> {
-        handleCallBegin(userClient.getUser(msg.intPayload().toLong()))
+        val askerUserID = msg.intPayload().toLong()
+        katolkModel.getUserInfo(askerUserID, Consumer { asker ->
+          handleCallBegin(asker)
+        })
       }
       msg.type == BinaryMessageType.CALL_END -> {
         handleCallEnd("Call ended")
@@ -428,7 +409,7 @@ class MainController {
     callThread!!.start()
     audio.Talk()
     audio.Listen()
-    wsClient.isOpponentAvailable = true
+    katolkModel.getWsClient().isOpponentAvailable = true
   }
 
   fun handleCallEnd(msg: String) {
@@ -437,7 +418,7 @@ class MainController {
     }
     audio.StopListening()
     audio.StopTalking()
-    wsClient.isOpponentAvailable = false
+    katolkModel.getWsClient().isOpponentAvailable = false
     callInProgress = false
     callOpponent = null
     uiUpdateCallMenus()
