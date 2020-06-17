@@ -23,7 +23,7 @@ class KatolkModel(
       feignRepository.username,
       feignRepository.password,
       "${feignRepository.url}/api/ws/websocket",
-      feignRepository.getToken())
+      feignRepository.getAccessToken())
 
   private val executor = Executors.newSingleThreadExecutor()
 
