@@ -1,0 +1,12 @@
+.loginPageWrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-content: center;
+    padding: 20px;
+}
+
+.btnContainer {
+    max-width: 50px;
+}

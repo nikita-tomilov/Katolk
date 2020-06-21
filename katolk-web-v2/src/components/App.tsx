@@ -3,8 +3,8 @@ import {LoginPage} from "./LoginPage";
 import {HomePage} from "./HomePage";
 
 function App() {
-  const [authorised, setAuthorized] = useState<boolean>(false);
-  return authorised ? <HomePage /> : <LoginPage setAuthorized={setAuthorized} />;
+  const [token, setToken] = useState<string | null>(null);
+  return token ? <HomePage /> : <LoginPage setToken={setToken} />;
 }
 
 export default App;

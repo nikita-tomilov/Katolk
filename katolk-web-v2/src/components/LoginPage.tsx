@@ -1,19 +1,23 @@
 import React, {useCallback} from "react";
+import {DefaultButton} from "./basic/Buttons";
+import './LoginPage.css';
 
 export type LoginPageProps = {
-    setAuthorized: (isAuthorized: boolean) => void;
+    setToken: (token: string) => void;
 }
 
 export const LoginPage = (props: LoginPageProps): JSX.Element => {
-    const { setAuthorized } = props;
+    const { setToken } = props;
 
     const clickHandler = useCallback(() => {
-        setAuthorized(true);
-    }, [setAuthorized]);
+        setToken('true');
+    }, [setToken]);
 
     return (
-        <div onClick={clickHandler}>
-            Login
+        <div className="loginPageWrapper">
+            <div className="btnContainer">
+                <DefaultButton onClick={clickHandler} title={'Login'} />
+            </div>
         </div>
     )
 }
