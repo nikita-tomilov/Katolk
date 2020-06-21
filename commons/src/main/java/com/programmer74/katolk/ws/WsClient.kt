@@ -1,10 +1,12 @@
 package com.programmer74.katolk.ws
 
+import mu.KLogging
 import org.java_websocket.client.WebSocketClient
 import org.java_websocket.handshake.ServerHandshake
 import java.net.URI
 import java.nio.ByteBuffer
 import java.util.*
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
@@ -16,7 +18,7 @@ class WsClient(
 
   val headers = HashMap<String, String>()
 
-  val client: WebSocketClient
+  lateinit var client: WebSocketClient
 
   val stringConsumers = ArrayList<Consumer<String>>()
 
@@ -26,26 +28,35 @@ class WsClient(
 
   lateinit var pingThread: Thread
 
+  private val executor = Executors.newSingleThreadExecutor()
+
   var isOpponentAvailable = false
 
   init {
-    val uri = URI(url)
     headers.put("Authorization", "Bearer $token")
+
+    reconnect()
+
+    setupReconnectThread()
+    setupPingThread()
+  }
+
+  private fun reconnect() {
+    val uri = URI(url)
     client = object : WebSocketClient(uri, headers) {
       override fun onOpen(serverHandshake: ServerHandshake) {
-        println("OPENED")
+        logger.info { "WebSocket opened" }
         this.send("AUTH")
       }
 
       override fun onMessage(s: String) {
-        println("MESSAGE \"$s\"")
+        logger.info { "WebSocket text message \"$s\"" }
         stringConsumers.forEach { it.accept(s) }
       }
 
       override fun onMessage(bytes: ByteBuffer?) {
         val payload = bytes!!.array()
         val message = KatolkBinaryMessage.fromBytes(payload)
-        //        println("BINARY MESSAGE \"${message.type.toString()}\"")
         if (message.type == KatolkBinaryMessageType.PING_COMPANION_REQUEST) {
           message.type = KatolkBinaryMessageType.PING_COMPANION_RESPONSE
           send(message.toBytes())
@@ -55,17 +66,16 @@ class WsClient(
       }
 
       override fun onClose(i: Int, s: String, b: Boolean) {
-        println("CLOSED")
+        logger.info { "WebSocket connection closed" }
+        Thread.sleep(3000L)
+        executor.submit { reconnect() }
       }
 
       override fun onError(e: Exception) {
-        println("ERROR " + e.toString())
-        e.printStackTrace()
+        logger.error(e) { "WebSocket connection error" }
+        Thread.sleep(3000L)
       }
     }
-
-    setupReconnectThread()
-    setupPingThread()
   }
 
   fun open() {
@@ -143,11 +153,11 @@ class WsClient(
       Thread.yield()
       end = System.currentTimeMillis()
       if ((end - begin) > 20000) {
-        println("TIMEOUT MS")
+        logger.info { "TIMEOUT MS" }
         break
       }
     }
-    println("PING TO SRV IS ${end - begin} ms")
+    logger.info { "PING TO SRV IS ${end - begin} ms" }
   }
 
   private fun opponentPing(latestMessageRef: AtomicReference<KatolkBinaryMessage?>) {
@@ -164,10 +174,12 @@ class WsClient(
       Thread.yield()
       end = System.currentTimeMillis()
       if ((end - begin) > 20000) {
-        println("TIMEOUT MS")
+        logger.info { "TIMEOUT MS" }
         break
       }
     }
-    println("PING TO OPPONENT IS ${end - begin} ms")
+    logger.info { "PING TO OPPONENT IS ${end - begin} ms" }
   }
+
+  companion object : KLogging()
 }

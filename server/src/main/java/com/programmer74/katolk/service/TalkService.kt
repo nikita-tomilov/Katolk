@@ -1,37 +1,41 @@
 package com.programmer74.katolk.service
 
 import com.programmer74.katolk.dao.User
+import com.programmer74.katolk.dto.OnlineUserStatus
 import com.programmer74.katolk.repository.OnlineUserRepositorySingleton
 import mu.KLogging
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.web.socket.WebSocketSession
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
-class OnlineUserService(
-  private val userService: UserService,
-  private val userPasswordEncoder: PasswordEncoder
+class TalkService(
+  private val userService: UserService
 ) {
-  private val onlineUsers = HashMap<WebSocketSession, User>()
 
-  private val talkingUserSessions = HashMap<WebSocketSession, WebSocketSession>()
+  private val onlineUsers = ConcurrentHashMap<WebSocketSession, User>()
+
+  private val channelForwarding = ConcurrentHashMap<WebSocketSession, WebSocketSession>()
+
+  private val userStatus = ConcurrentHashMap<User, OnlineUserStatus>()
 
   fun setOnlineInDatabase(user: User) {
-    logger.warn { "Invoked setOnline on user $user" }
+    logger.warn { "Invoked setOnline on user '$user'" }
     OnlineUserRepositorySingleton.get().addUser(user)
   }
 
   fun setOfflineInDatabase(user: User) {
-    logger.warn { "Invoked setOffline on user $user" }
+    logger.warn { "Invoked setOffline on user '$user'" }
     OnlineUserRepositorySingleton.get().removeUser(user)
   }
 
-  fun checkPasswordMatches(user: User, password: String): Boolean {
-    return userPasswordEncoder.matches(password, user.password)
-  }
+  fun getUserStatus(user: User) = userStatus[user]
 
-  fun getUser(id: Long): User {
-    return userService.findUserById(id)
+  fun setUserStatus(user: User?, status: OnlineUserStatus) {
+    if (user == null) return
+    logger.warn { "Invoked setUserStatus on user '$user' status $status" }
+    userStatus[user] = status
   }
 
   fun getUser(username: String): User? {
@@ -39,26 +43,31 @@ class OnlineUserService(
   }
 
   fun addOnlineUser(user: User, session: WebSocketSession) {
-    logger.warn { "Invoked addOnlineUser for user $user" }
+    logger.warn { "Invoked addOnlineUser for user '$user'" }
     onlineUsers[session] = user
     setOnlineInDatabase(user)
+    setUserStatus(user, OnlineUserStatus.READY_FOR_CALL)
   }
 
   fun addTalk(from: WebSocketSession, to: WebSocketSession) {
-    talkingUserSessions[from] = to
+    channelForwarding[from] = to
+    channelForwarding[to] = from
+
+    setUserStatus(onlineUsers[from], OnlineUserStatus.CALL_IN_PROGRESS)
+    setUserStatus(onlineUsers[to], OnlineUserStatus.CALL_IN_PROGRESS)
   }
 
   fun removeTalk(one: WebSocketSession) {
-    if (talkingUserSessions.containsKey(one)) {
-      talkingUserSessions.remove(one)
-    } else {
-      val two
-          = talkingUserSessions.filter { it.value == one }.keys.first()
-      talkingUserSessions.remove(two)
-    }
+    val talk = getTalk(one) ?: return
+
+    channelForwarding.remove(talk.key)
+    channelForwarding.remove(talk.value)
+
+    setUserStatus(onlineUsers[talk.key], OnlineUserStatus.READY_FOR_CALL)
+    setUserStatus(onlineUsers[talk.value], OnlineUserStatus.READY_FOR_CALL)
   }
 
-  fun getTalk(one: WebSocketSession) = talkingUserSessions
+  fun getTalk(one: WebSocketSession) = channelForwarding
       .filter { it.key == one || it.value == one }
       .entries
       .firstOrNull()

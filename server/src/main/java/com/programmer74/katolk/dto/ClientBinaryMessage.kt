@@ -1,4 +1,4 @@
-package com.programmer74.katolk.ws
+package com.programmer74.katolk.dto
 
 import com.programmer74.katolk.dao.User
 import java.util.*
@@ -56,6 +56,27 @@ data class ClientBinaryMessage(
       val payload = bytes.copyOfRange(additionalLen, bytes.size - additionalLen + 1)
       val type = ClientBinaryMessageType.values()[bytes[0].toInt()]
       return ClientBinaryMessage(type, payload, from)
+    }
+
+    fun callErrorUserNotFound(from: User): ClientBinaryMessage {
+      return ClientBinaryMessage(
+          ClientBinaryMessageType.CALL_ERROR,
+          "User not found".toByteArray(),
+          from)
+    }
+
+    fun callErrorOffline(from: User): ClientBinaryMessage {
+      return ClientBinaryMessage(
+          ClientBinaryMessageType.CALL_ERROR,
+          "User is offline".toByteArray(),
+          from)
+    }
+
+    fun callErrorUserBusy(from: User, status: OnlineUserStatus?): ClientBinaryMessage {
+      return ClientBinaryMessage(
+          ClientBinaryMessageType.CALL_ERROR,
+          "User is busy, status $status".toByteArray(),
+          from)
     }
   }
 

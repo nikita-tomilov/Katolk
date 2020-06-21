@@ -1,10 +1,9 @@
 package com.programmer74.katolk.client.gui
 
 import com.programmer74.katolk.FeignRepository
+import com.programmer74.katolk.KatolkCallModel
 import com.programmer74.katolk.KatolkModel
 import com.programmer74.katolk.client.audio.Audio
-import com.programmer74.katolk.ws.KatolkBinaryMessage
-import com.programmer74.katolk.ws.KatolkBinaryMessageType
 import com.programmer74.katolk.client.data.getOpponent
 import com.programmer74.katolk.dto.DialogueDto
 import com.programmer74.katolk.dto.MessageDto
@@ -33,6 +32,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Period
 import java.time.ZoneOffset
+import java.util.concurrent.CountDownLatch
 import java.util.function.BiConsumer
 import java.util.function.Consumer
 
@@ -70,9 +70,11 @@ class MainController {
 
   lateinit var feignRepository: FeignRepository
   lateinit var katolkModel: KatolkModel
+  lateinit var katolkCallModel: KatolkCallModel
   lateinit var audio: Audio
 
   lateinit var me: UserInfoDto
+  private val gotMyInfo = CountDownLatch(1)
   var messagesOpponent: UserInfoDto? = null
   var callOpponent: UserInfoDto? = null
   var selectedDialogue: DialogueDto? = null
@@ -85,6 +87,8 @@ class MainController {
 
   fun performPostConstruct() {
     setupKatolkModel()
+    setupKatolkCallModel()
+    gotMyInfo.await()
     audio = Audio(3, katolkModel.getWsClient())
 
     uiSetupDialogListImages()
@@ -113,11 +117,8 @@ class MainController {
 
     katolkModel.setup(Consumer { info ->
       me = info
+      gotMyInfo.countDown()
       uiUpdateUserInfo(tfMe, me)
-    })
-
-    katolkModel.getWsClient().addBinary(Consumer { t ->
-      WsBinaryMsgHandler(t)
     })
 
     katolkModel.onMessagesRetrievedCallback = BiConsumer { t, u ->
@@ -149,6 +150,31 @@ class MainController {
 
     katolkModel.onUserStateChangedCallback = Consumer {
       katolkModel.scheduleDialogueListUpdate()
+    }
+  }
+
+  private fun setupKatolkCallModel() {
+    katolkCallModel = KatolkCallModel(katolkModel)
+
+    katolkCallModel.onCallBeginCallback = Consumer { handleCallBegin(it) }
+    katolkCallModel.onCallEndCallback = Consumer { handleCallEnd(it) }
+    katolkCallModel.onCallErrorCallback = Consumer {
+      MessageBoxes.showAlert("Error: $it", "Error")
+    }
+
+    katolkCallModel.onCallAcceptedCallback = Consumer { println("CALL ACCEPTED") }
+    katolkCallModel.onCallDeniedCallback = Consumer {
+      MessageBoxes.showAlert("Denied", "Call denied")
+    }
+
+    katolkCallModel.onUserDialsYouCallback = Consumer {
+      val prompt = "Incoming call from ${it.username}. Accept?"
+      val agree = MessageBoxes.showYesNoAlert(prompt)
+      if (agree) {
+        katolkCallModel.acceptCall(it.id)
+      } else {
+        katolkCallModel.denyCall(it.id)
+      }
     }
   }
 
@@ -353,19 +379,13 @@ class MainController {
   @FXML
   fun mnuBeginCallClick(event: ActionEvent) {
     val opponent = this.messagesOpponent ?: return
-    val callMessage = KatolkBinaryMessage(
-        KatolkBinaryMessageType.CALL_REQUEST,
-        opponent.id.toInt())
-    katolkModel.getWsClient().client.send(callMessage.toBytes())
+    katolkCallModel.dialUser(opponent.id)
   }
 
   @FXML
   fun mnuEndCallClick(event: ActionEvent) {
     val opponent = this.callOpponent ?: return
-    val callMessage = KatolkBinaryMessage(
-        KatolkBinaryMessageType.CALL_END,
-        opponent.id.toInt())
-    katolkModel.getWsClient().client.send(callMessage.toBytes())
+    katolkCallModel.endCall(opponent.id)
   }
 
   @FXML
@@ -379,45 +399,7 @@ class MainController {
 
   }
 
-  fun WsBinaryMsgHandler(msg: KatolkBinaryMessage) {
-    when {
-      msg.type == KatolkBinaryMessageType.CALL_REQUEST -> {
-        val askerUserID = msg.intPayload().toLong()
-        katolkModel.getUserInfo(askerUserID, Consumer { asker ->
-          val prompt = "Incoming call from ${asker.username}. Accept?"
-          val agree = MessageBoxes.showYesNoAlert(prompt)
-          val answer =
-              if (agree) {
-                KatolkBinaryMessage(
-                    KatolkBinaryMessageType.CALL_RESPONSE_ALLOW,
-                    asker.id.toInt())
-              } else {
-                KatolkBinaryMessage(
-                    KatolkBinaryMessageType.CALL_RESPONSE_DENY,
-                    asker.id.toInt())
-              }
-          katolkModel.getWsClient().send(answer)
-        })
-      }
-      msg.type == KatolkBinaryMessageType.CALL_BEGIN -> {
-        val askerUserID = msg.intPayload().toLong()
-        katolkModel.getUserInfo(askerUserID, Consumer { asker ->
-          handleCallBegin(asker)
-        })
-      }
-      msg.type == KatolkBinaryMessageType.CALL_END -> {
-        handleCallEnd("Call ended")
-      }
-      msg.type == KatolkBinaryMessageType.CALL_ERROR -> {
-        MessageBoxes.showAlert("Error calling", "Error")
-      }
-      msg.type == KatolkBinaryMessageType.CALL_END_ABNORMAL -> {
-        handleCallEnd("Abnormal call ending. Probably opponent disconnected")
-      }
-    }
-  }
-
-  fun handleCallBegin(user: UserInfoDto) {
+  private fun handleCallBegin(user: UserInfoDto) {
     callInProgress = true
     uiUpdateCallMenus()
     System.err.println("BEGIN CALL")
@@ -442,7 +424,7 @@ class MainController {
     katolkModel.getWsClient().isOpponentAvailable = true
   }
 
-  fun handleCallEnd(msg: String) {
+  private fun handleCallEnd(msg: String) {
     if (!callInProgress) {
       return
     }
