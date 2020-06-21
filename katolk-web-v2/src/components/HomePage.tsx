@@ -1,5 +1,7 @@
 import React, {useEffect, useState} from "react";
 import {getUserDialogList} from "../api/dialog";
+import {DialogList} from "./DialogList";
+import {DialogScreen} from "./DialogScreen";
 
 export type MessageData = {
     id: number;
@@ -22,6 +24,7 @@ export type UserDialogData = {
 
 export const HomePage = ():JSX.Element => {
     const [dialogs, setDialogs] = useState<UserDialogData[] | null>(null);
+    const [selected, setSelected] = useState<number | null>(null);
 
     useEffect(() => {
         if(!dialogs) getUserDialogList().then(setDialogs);
@@ -29,7 +32,8 @@ export const HomePage = ():JSX.Element => {
 
     return (
         <div>
-            Home
+            {dialogs && !selected && <DialogList dialogsData={dialogs} onDialogSelect={setSelected}/> }
+            {dialogs && selected && <DialogScreen dialogData={dialogs[selected]} onBack={() => setSelected(null)}/> }
         </div>
     )
 }
