@@ -1,10 +1,6 @@
 import React from "react";
 
-export type HomePageProps = {
-    token: string;
-}
-
-export const HomePage = (props: HomePageProps):JSX.Element => {
+export const HomePage = ():JSX.Element => {
     return (
         <div>
             Home

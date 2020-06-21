@@ -12,9 +12,14 @@ class AuthServiceClass {
 
     public login = (username: string, password: string): Promise<boolean> => {
         return getToken(`grant_type=password&username=${username}&password=${password}`)
-            .then(this.updateTokenValue)
-            .catch(this.setAuthErrorMessage)
-            .finally(() => Promise.resolve(this.token !== null));
+            .then((responseToken: string) => {
+                this.updateTokenValue(responseToken);
+                return true;
+            })
+            .catch((errorMessage: string) => {
+                this.setAuthErrorMessage(errorMessage);
+                return false;
+            })
     };
 
     public logout = (): void => {
@@ -28,6 +33,10 @@ class AuthServiceClass {
 
     public getAuthErrorMessage = (): string | null => {
         return this.authError;
+    }
+
+    public isAuthorized = (): boolean => {
+        return this.token.length > 0;
     }
 
     private setAuthErrorMessage = (message: string | null) => {

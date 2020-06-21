@@ -3,14 +3,10 @@ import './LoginPage.css';
 import {Button, TextField} from "@material-ui/core";
 import {getAuthService} from "../service/AuthService";
 
-export type LoginPageProps = {
-    setToken: (token: string) => void;
-}
-
 const authService = getAuthService();
 
-export const LoginPage = (props: LoginPageProps): JSX.Element => {
-    const { setToken } = props;
+export const LoginPage = (props: {onLogin: (isAuthorized: boolean) => void}): JSX.Element => {
+    const { onLogin } = props;
     const [authMessage, setAuthMessage] = useState<string | null>(null);
     const [name, setName] = useState("");
     const [password, setPassword] = useState("");
@@ -26,10 +22,10 @@ export const LoginPage = (props: LoginPageProps): JSX.Element => {
 
     const onSignIn = useCallback(() => {
         authService.login(name, password).then((success: boolean) => {
-            if(success) setToken(authService.getToken());
-            else setAuthMessage(authService.getAuthErrorMessage());
+            if(!success) setAuthMessage(authService.getAuthErrorMessage());
+            else onLogin(true);
         })
-    }, [name, password, setToken]);
+    }, [name, password, onLogin]);
 
     const onKeyPress = useCallback(
         (e: React.KeyboardEvent) => {
