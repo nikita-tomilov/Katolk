@@ -91,7 +91,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>com.programmer74.katolk.client.ClientAplication</mainClass>
+                                    <mainClass>com.programmer74.katolk.client.ClientApplication</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>

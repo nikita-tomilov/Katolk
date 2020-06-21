@@ -165,7 +165,7 @@ class BinaryMessageHandler(
   }
 
   private fun handleTalkEndNormally(session: WebSocketSession, requestFrom: User) {
-    logger.warn { "handleTalkEndNormally on user $requestFrom" }
+    logger.warn { "handleTalkEndNormally on user '$requestFrom'" }
     val talk = talkService.getTalk(session) ?: return
     val notifyTo =
         if (talk.key == session) talk.value else talk.key
@@ -175,8 +175,14 @@ class BinaryMessageHandler(
             ClientBinaryMessageType.CALL_END,
             ByteArray(0),
             requestFrom)
+
+    val oneParticipant = talkService.getOnlineUser(session)
+    val anotherParticipant = talkService.getOnlineUser(notifyTo)
+
     session.secureSendMessage(msg)
+    logger.warn { "sent CALL_END to user '$oneParticipant'" }
     if (session != notifyTo) {
+      logger.warn { "sent CALL_END to user '$anotherParticipant'" }
       notifyTo.secureSendMessage(msg)
     }
     talkService.removeTalk(notifyTo)

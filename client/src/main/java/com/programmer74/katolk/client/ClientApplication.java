@@ -7,7 +7,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-public class ClientAplication extends Application {
+public class ClientApplication extends Application {
   public static void main(String[] args) {
     launch(args);
   }

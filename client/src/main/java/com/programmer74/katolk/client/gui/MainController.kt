@@ -89,7 +89,7 @@ class MainController {
     setupKatolkModel()
     setupKatolkCallModel()
     gotMyInfo.await()
-    audio = Audio(3, katolkModel.getWsClient())
+    audio = Audio(katolkModel.getWsClient())
 
     uiSetupDialogListImages()
 
@@ -419,8 +419,8 @@ class MainController {
       }
     })
     callThread!!.start()
-    audio.Talk()
-    audio.Listen()
+    audio.talk()
+    audio.listen()
     katolkModel.getWsClient().isOpponentAvailable = true
   }
 
@@ -428,8 +428,8 @@ class MainController {
     if (!callInProgress) {
       return
     }
-    audio.StopListening()
-    audio.StopTalking()
+    audio.stopListening()
+    audio.stopTalking()
     katolkModel.getWsClient().isOpponentAvailable = false
     callInProgress = false
     callOpponent = null
