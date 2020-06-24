@@ -50,7 +50,8 @@ class LoginController {
 
     val me: UserInfoDto
     try {
-      feignRepo.obtainTokenByUsernamePassword(username, password)
+      val token = feignRepo.obtainTokenByUsernamePassword(username, password)
+      println("Obtained token '$token'")
       me = userClient.me()
     } catch (fex: FeignException) {
       MessageBoxes.showAlert("Error", fex.localizedMessage)

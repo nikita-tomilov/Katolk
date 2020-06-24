@@ -24,4 +24,7 @@ interface DialogueAPI {
   fun sendMessage(
     msg: MessageRequestDto
   ): MessageDto
+
+  @RequestLine("GET /create/{userId}")
+  fun getDialogs(@Param( "userId") userId: Long): List<DialogueDto>
 }

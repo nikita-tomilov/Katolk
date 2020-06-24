@@ -124,6 +124,16 @@ class DialogueService(
     return userService.findUsersByIds(userIds)
   }
 
+  fun onboardUser(user: User) {
+    val talkToUrself = createDialogue(user, "Private chat")
+    val msg =
+        messagesService.sendMessage(
+            user,
+            talkToUrself,
+            "This is your private dialogue with yourself")
+    messagesService.markMessageAsRead(msg)
+  }
+
   @PostConstruct
   private fun initDialogues() {
     if (dialogueRepository.findAll().toList().isNotEmpty()) return

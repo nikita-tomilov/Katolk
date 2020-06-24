@@ -52,6 +52,11 @@ data class User(
     return password!!
   }
 
+  fun setNewPassword(newPassword: String): String {
+    this.password = newPassword
+    return this.password!!
+  }
+
   override fun isEnabled(): Boolean {
     return enabled
   }

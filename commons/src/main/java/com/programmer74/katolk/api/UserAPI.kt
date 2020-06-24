@@ -9,7 +9,11 @@ interface UserAPI {
   fun me(): UserInfoDto
 
   @RequestLine("GET /user/{id}")
-  fun getUser(
-    @Param("id") id: Long
-  ): UserInfoDto
+  fun getUser(@Param("id") id: Long): UserInfoDto
+
+  @RequestLine("GET /me/change/password/{newpassword}")
+  fun changeMyPassword(@Param("newpassword") newPassword: String): UserInfoDto
+
+  @RequestLine("GET /user/all")
+  fun getAllUsers(): List<UserInfoDto>
 }

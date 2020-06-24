@@ -45,4 +45,14 @@ class DialogController(
     val me = userService.meAsEntity()
     return dialogService.sendMessageAndReturnDto(me, msg)
   }
+
+  @GetMapping("/create/{userId}")
+  override fun getDialogs(
+    @PathVariable("userId") userId: Long
+  ): List<DialogueDto> {
+    val me = userService.meAsEntity()
+    val another = userService.findUserById(userId)
+    dialogService.createDialogue(me, another)
+    return dialogService.getDialogRepresentations(me)
+  }
 }
