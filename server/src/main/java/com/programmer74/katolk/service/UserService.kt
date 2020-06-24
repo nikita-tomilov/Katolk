@@ -6,7 +6,6 @@ import com.programmer74.katolk.dto.UserDto
 import com.programmer74.katolk.exception.NotFoundException
 import com.programmer74.katolk.repository.UserRepository
 import com.programmer74.katolk.util.SecurityContextUtils
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
@@ -20,9 +19,6 @@ class UserService(
   private val userRepository: UserRepository,
   private val userPasswordEncoder: PasswordEncoder
 ) : UserDetailsService {
-
-  @Autowired
-  lateinit var dialogueService: DialogueService
 
   @Transactional(readOnly = true)
   @Throws(UsernameNotFoundException::class)
@@ -73,9 +69,7 @@ class UserService(
         enabled = true,
         authorities = listOf(Authority(2, "USER"))
     )
-    val savedUser = userRepository.saveAndFlush(newUser)
-    dialogueService.onboardUser(savedUser)
-    return savedUser
+    return userRepository.saveAndFlush(newUser)
   }
 
   fun changePassword(newPassword: String): User {

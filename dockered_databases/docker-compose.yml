@@ -4,7 +4,7 @@ services:
     build:
       context: ./containers/postgre
     ports:
-      - 5432:5432
+      - 127.0.0.1:5432:5432
     image: katolk_postgre_image
     container_name: katolk_postgre
     volumes:
