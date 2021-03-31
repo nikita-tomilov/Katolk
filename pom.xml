@@ -26,7 +26,7 @@
         <java.version>1.8</java.version>
         <kotlin.version>1.3.71</kotlin.version>
         <feign.version>9.3.1</feign.version>
-        <guava.version>27.0.1-jre</guava.version>
+        <guava.version>29.0-jre</guava.version>
         <swagger.version>2.9.2</swagger.version>
         <typesafe.version>1.3.3</typesafe.version>
         <junit.jupiter.version>5.4.0</junit.jupiter.version>
